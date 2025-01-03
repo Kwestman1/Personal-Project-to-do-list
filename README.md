@@ -1,5 +1,7 @@
-# 💡 Idea
+# 💡 Idea's in construction
+- Password protected lists
 
+# Basic outline of Application
 1. Load Introduction
 2. prompt user
 3. process various commands (using hash map, file handling using <fstream> library)
