@@ -1,4 +1,4 @@
-# 💡 Idea's in construction
+# 💡 New idea's in construction
 - Password protected lists
 
 # Basic outline of application
