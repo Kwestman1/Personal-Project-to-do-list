@@ -1,5 +1,6 @@
 # 💡 New idea's in construction
 - Password protected lists
+- Upload existing file
 
 # Basic outline of application
 1. Load Introduction
