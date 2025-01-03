@@ -1,4 +1,4 @@
-# 💡 New idea's in construction
+# 💡 New implementations in construction
 - Password protected lists
 - Upload existing file
 
