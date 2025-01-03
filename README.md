@@ -1,4 +1,4 @@
-# 💭 Idea
+# 💡 Idea
 
 1. Load Introduction
 2. prompt user
