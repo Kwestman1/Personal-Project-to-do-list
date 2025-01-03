@@ -9,7 +9,7 @@ void process_name(string &name);
 
 // --------------------- DRIVER --------------------- //
 int main() {
-  cout << "Welcome to your personalized To-Do List!\n\n";
+  cout << "Hello! Welcome to your personalized To-Do List!\n\n";
   string option = "";
   string name = "";
 
