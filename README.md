@@ -2,7 +2,7 @@
 
 1. Load Introduction
 2. prompt user
-3. process commands
+3. process various commands (using hash map, file handling using <fstream> library)
 4. once quit/save, Goodbye message, restart
 - input:
     - -h/—help: how to use application
