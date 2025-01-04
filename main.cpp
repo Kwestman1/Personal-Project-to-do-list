@@ -10,7 +10,7 @@ void process_name(string &name, MasterFiles &master);
 
 // --------------------- DRIVER --------------------- //
 int main() {
-  cout << "Hello! Welcome to your personalized To-Do List!\n\n";
+  cout << "Hello!! Welcome to your personalized To-Do List!\n\n";
   string option = "";
   string name = "";
   MasterFiles m;
