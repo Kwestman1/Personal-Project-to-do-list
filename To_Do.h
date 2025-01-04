@@ -6,6 +6,7 @@
 #include <chrono>
 #include <sstream>
 #include <fstream>
+#include <regex>
 #include <unordered_set> 
 using std::unordered_map;
 using std::string;
@@ -54,7 +55,7 @@ void File::set_time() {
 // ----- Proccess command functions ----- //
 
 bool File::check_int_el(uint32_t i) {
-    if (i >= master_list.size()) {
+    if ((i >= master_list.size() || i < 0) && i != 0) {
         return false;
     }
     return true;
@@ -70,7 +71,7 @@ void File::print_cmd_options() {
     cout << "Type: 'x' to delete the entire list\n";
     cout << "Type: 'p' to print the entire lists contents\n";
     cout << "Type: 'r' to see this menu again\n";
-    cout << "Type: 'q' to quit\n";
+    cout << "Type: 'q' to quit and save list\n";
 }
 
 void File::print_list() {
@@ -100,11 +101,11 @@ class MasterFiles {
         bool dupe_name(string &name);
         void search_by_date();
         uint64_t create_timestamp(int year, int month, int day);
-        void search_keyword(const vector<string> &keyword_list, std::unordered_set<uint32_t> &common_indices, const string &prefix);
+        void search_with_wildcards(const string &pattern, std::unordered_set<uint32_t> &matching_indices, const std::string &prefix);
         void update_indices(uint32_t idx);
         void delete_phrase(const string& phrase, uint32_t idx);
         void add_phrase(const string& phrase, int idx, const string& prefix);
-        bool check_idx(uint32_t i);
+        uint32_t validate_and_get_index(const string& input);
         void list_found(string &name);
 };
 
@@ -150,13 +151,18 @@ void MasterFiles::update_indices(uint32_t idx) {
   }
 }
 
-bool MasterFiles::check_idx(uint32_t i) {
-    if (i >= master_files.size()) {
-        return false;
+uint32_t MasterFiles::validate_and_get_index(const string& input) {
+    if (isdigit(input[0])) {
+        uint32_t idx = stoull(input);
+        while ((idx >= master_files.size() || idx < 0) && idx != 0) {
+            cerr << "Error: index out of range\n";
+            cout << "Enter new number: ";
+            cin >> idx;
+        }
+        return idx;
     }
-    return true;
+    return -1; // Invalid index
 }
-
 // --------------------- FUNCTORS --------------------- //
 
 struct Sorter {

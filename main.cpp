@@ -43,10 +43,10 @@ int main() {
           do {
             print_search_options();
             cin >> new_opt;
-            if (new_opt.size() != 1 || (new_opt[0] != '1' || new_opt[0] != '2')) {
+            if (new_opt.size() != 1 || (new_opt[0] != '1' && new_opt[0] != '2')) {
               cerr << "Error: Selection out of range or not numerical\n";
             }
-          } while (new_opt.size() == 1 && (new_opt[0] == '1' || new_opt[0] == '2'));
+          } while (new_opt.size() == 1 && (new_opt[0] == '1' && new_opt[0] == '2'));
           m.do_search(stoull(option));
         }
         else {
@@ -135,13 +135,8 @@ void process_name(string &name, MasterFiles &master) {
             master.print_filenames(0, -1);
             cout << "Enter filename or number\n";
             cin >> name;
-            if (isdigit(name[0])) {
-              uint32_t num = stoull(name);
-              while (!master.check_idx(num)) {
-                cerr << "Error index out of range\n";
-                cout << "Enter new number: \n";
-                cin >> num;
-              }
+            uint32_t num = master.validate_and_get_index(name);
+            if (num != -1) {
               name = master.get_name(num);
             }
           }
@@ -157,13 +152,8 @@ void process_name(string &name, MasterFiles &master) {
             master.do_search(stoull(option));
             cout << "Enter filename or number\n";
             cin >> name;
-            if (isdigit(name[0])) {
-              uint32_t num = stoull(name);
-              while (!master.check_idx(num)) {
-                cerr << "Error index out of range\n";
-                cout << "Enter new number: \n";
-                cin >> num;
-              }
+            uint32_t num = master.validate_and_get_index(name);
+            if (num != -1) {
               name = master.get_name(num);
             }
           }
@@ -222,19 +212,23 @@ void MasterFiles::do_search(uint32_t num) {
   else if (num == 2) { // keyword search
     string key;
     cout << "Enter keyword(s): ";
-    cin >> key;
+    cin.ignore(); // Ignore leftover newline
+    getline(cin, key);
 
-    istringstream iss(key);
-    vector<string> keyword_list;
-    string word;
-    while (iss >> word) {
-      keyword_list.push_back(word);
-    }
     unordered_set<uint32_t> common_file_indices;
     unordered_set<uint32_t> common_content_indices;
 
-    search_keyword(keyword_list, common_file_indices, "F:");
-    search_keyword(keyword_list, common_content_indices, "C:");
+    search_with_wildcards(key, common_file_indices, "F:");
+    search_with_wildcards(key, common_content_indices, "C:");
+
+    // Debugging
+    cout << "File indices: ";
+    for (const auto &idx : common_file_indices) {cout << idx << " ";}
+    cout << "\n";
+    cout << "Content indices: ";
+    for (const auto &idx : common_content_indices) {cout << idx << " ";}
+    cout << "\n";
+
     // combine files into 1
     for (const auto &idx : common_content_indices) {
         common_file_indices.insert(idx);
@@ -243,6 +237,7 @@ void MasterFiles::do_search(uint32_t num) {
     if (!common_file_indices.empty()) {
       cout << "Search results:\n";
       for (const auto &index : common_file_indices) {
+        // debugging (shouldn't print)
         if (index >= master_files.size()) {
           cerr << "Error: Index " << index << " is out of bounds!\n";
           continue;
@@ -257,30 +252,17 @@ void MasterFiles::do_search(uint32_t num) {
   }
 }
 
-void MasterFiles::search_keyword(const vector<string> &keyword_list, std::unordered_set<uint32_t> &common_indices, const string &prefix) {
-    bool first_keyword = true;
-    for (const auto &keyword : keyword_list) {
-        auto iter = k_search.find(prefix + keyword);
-        if (iter != k_search.end()) {
-        unordered_set<uint32_t> current_indices(iter->second.begin(), iter->second.end());
-        if(first_keyword) {
-            common_indices = current_indices;
-        }
-        else { //set intersection
-            unordered_set<uint32_t> temp;
-            for (uint32_t index : common_indices) {
-                if (current_indices.find(index) != current_indices.end()) {
-                    temp.insert(index);
-                }
-            }
-            common_indices = std::move(temp);
-        }
-        }
-        else {
-            common_indices.clear();
-            break;
-        }
+void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_set<uint32_t> &matching_indices, const std::string &prefix) {
+  string regex_pattern = prefix + std::regex_replace(pattern, std::regex(R"(\*)"), ".*");
+  std::regex re(regex_pattern, std::regex::icase);
+
+  // Iterate over all keys in k_search
+  for (const auto &pair : k_search) {
+    if (std::regex_match(pair.first, re)) {
+      // Add all indices associated with the matching key
+      matching_indices.insert(pair.second.begin(), pair.second.end());
     }
+  }
 }
 
 void MasterFiles::search_by_date() {
@@ -368,10 +350,10 @@ bool MasterFiles::dupe_name(string &name) {
     cout << "% ";
     cin >> option;
     opt = tolower(option[0]);
-    if (option.size() != 1 || opt != 'y' || opt != 'n' || opt != 'q') {
+    if (option.size() != 1 || (opt != 'y' && opt != 'n' && opt != 'q')) {
       cout << "Error: invalid option";
     } 
-  } while(option.size() != 1 || opt != 'y' || opt != 'n' || opt != 'q');
+  } while(option.size() != 1 || (opt != 'y' && opt != 'n' && opt != 'q'));
 
   if (opt == 'y') {
     return true;
@@ -488,7 +470,7 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
         add_phrase(phrase, master_idx, "C:");
       }
       else {
-        cerr << "Error: position is invalid in the excerpt list\n";
+        cerr << "Error: position is invalid in the list\n";
       }
     }
     else if (cmd == 'd') { // delete entry
@@ -497,7 +479,7 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
           file.delete_el(pos);
       }
       else {
-        cerr << "Error: position is invalid in the excerpt list\n";
+        cerr << "Error: position is invalid in the list\n";
       }
     }
     else if (cmd == 'b') { // move to beginning
@@ -506,7 +488,7 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
         file.move_to_beginning(pos);
       }
       else {
-        cerr << "Error: position is invalid in the excerpt list\n";
+        cerr << "Error: position is invalid in the list\n";
       }
     }
     else if (cmd == 'e') { // move to end
@@ -515,7 +497,7 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
         file.move_to_end(pos);
       }
       else {
-        cerr << "Error: position is invalid in the excerpt list\n";
+        cerr << "Error: position is invalid in the list\n";
       }
     }
     else if (cmd == 'c') {
