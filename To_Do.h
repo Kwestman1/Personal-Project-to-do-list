@@ -6,6 +6,7 @@
 #include <chrono>
 #include <sstream>
 #include <fstream>
+#include <unordered_set> 
 using std::unordered_map;
 using std::string;
 using std::vector;
@@ -16,13 +17,15 @@ using TimePoint = std::chrono::time_point<Clock>;
 // --------------------- FILE CLASS --------------------- //
 
 struct File {
-    string print_timestamp;
-    uint64_t comp_timestamp; 
     string file_name;
+    int file_idx; // where the file is in the master file
     bool favorite;
+    string print_timestamp;
+    uint32_t comp_timestamp; 
     vector<string> master_list; // contains all file entries for that list
     
     void set_time();
+    void add_file_contents();
     // Proccess command functions:
     void print_cmd_options();
     void print_list();
@@ -31,11 +34,9 @@ struct File {
     void move_to_beginning(uint32_t position);
     void move_to_end(uint32_t position);
     // process_commands helpers:
-    bool check_int_el(uint32_t i, uint32_t idx);
+    bool check_int_el(uint32_t i);
 
-    File() : file_name{" "}, favorite{false} {
-        set_time();
-    }
+    File() : file_name{" "}, file_idx{-1}, favorite{false}, print_timestamp{" "}, comp_timestamp{0} {}
 };
 
 void File::set_time() {
@@ -52,7 +53,7 @@ void File::set_time() {
 
 // ----- Proccess command functions ----- //
 
-bool File::check_int_el(uint32_t i, uint32_t idx) {
+bool File::check_int_el(uint32_t i) {
     if (i >= master_list.size()) {
         return false;
     }
@@ -90,25 +91,26 @@ class MasterFiles {
         MasterFiles() {}
 
         // File functions:
-        uint32_t find_fn(string &name);
+        uint32_t get_num_dupes(string &name);
         void add_file(File& file);
         void print_filenames(uint32_t start, uint32_t end);
         string get_name(uint32_t idx);
         void do_search(uint32_t num);
-        void process_commands(string &name);
+        void process_commands(File &file, uint32_t master_idx);
         bool dupe_name(string &name);
         void search_by_date();
         uint64_t create_timestamp(int year, int month, int day);
-        void build_keyword_map();
-        void search_keyword(const string &keyword);
+        void search_keyword(const vector<string> &keyword_list, std::unordered_set<uint32_t> &common_indices, const string &prefix);
         void update_indices(uint32_t idx);
         void delete_phrase(const string& phrase, uint32_t idx);
         void add_phrase(const string& phrase, int idx, const string& prefix);
+        bool check_idx(uint32_t i);
+        void list_found(string &name);
 };
 
 // ----- File functions ----- //
 
-uint32_t MasterFiles::find_fn(string &name) {
+uint32_t MasterFiles::get_num_dupes(string &name) {
   auto iter_fn = k_search.find("F:" + name);
   if (iter_fn == k_search.end()) {
     return -1;
@@ -146,6 +148,13 @@ void MasterFiles::update_indices(uint32_t idx) {
       }
     }
   }
+}
+
+bool MasterFiles::check_idx(uint32_t i) {
+    if (i >= master_files.size()) {
+        return false;
+    }
+    return true;
 }
 
 // --------------------- FUNCTORS --------------------- //
