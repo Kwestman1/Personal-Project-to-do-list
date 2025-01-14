@@ -1,112 +1,62 @@
-#include "To_Do.h"
-using namespace std;
+#include "Master.h"
 
 // main helpers
-void print_options();
-void print_search_options();
-void print_help();
 void new_list(MasterFiles &master, string &name);
 void process_name(string &name, MasterFiles &master);
 
 // --------------------- DRIVER --------------------- //
 int main() {
   cout << "Hello!! Welcome to your personalized To-Do List!\n\n";
-  string option = "";
+  uint32_t option;
   string name = "";
   MasterFiles m;
-
-  do {
-    print_options();
-    cin >> option;
-    name = option;
-    // convert to lower case
-    std::transform(option.begin(), option.end(), option.begin(), [](unsigned char c){ return std::tolower(c); });
-    if (isdigit(option[0])) {
-      if (option.size() == 1) {
-        if (option[0] == '1') {
-          print_help();
-        }
-        else if(option[0] == '2') {
-          cout << "Enter list name: ";
-          cin >> name;
-          process_name(name, m);
-        }
-        else if (option[0] == '3') {
-          string name;
-          cout << "Creating new list!\n";
-          cout << "Enter list name: ";
-          cin >> name;
-          new_list(m, name);
-        }
-        else if (option[0] == '4') {
-          string new_opt;
-          do {
-            print_search_options();
-            cin >> new_opt;
-            if (new_opt.size() != 1 || (new_opt[0] != '1' && new_opt[0] != '2')) {
-              cerr << "Error: Selection out of range or not numerical\n";
-            }
-          } while (new_opt.size() == 1 && (new_opt[0] == '1' && new_opt[0] == '2'));
-          m.do_search(stoull(option));
-        }
-        else {
-          cout << "Numbered option " << option[0] << " doesn't exist\n";
-        }
+  Input menu;
+  while (true) {
+    menu.print_options();
+    option = menu.get_menu_option(1, 5);
+    if (option == 5) {
+      break;
+    }
+    if (option == 1) {
+      print_help();
+    }
+    else if (option == 2) {
+      do {
+        cout << "Enter list name: ";
+        cin >> name;
+      } while (!menu.is_valid_name(name));
+      process_name(name, m);
+    }
+    else if (option == 3) {
+      do {
+        cout << "Creating new list!\n";
+        cout << "Enter list name: ";
+        cin >> name;
+      } while (!menu.is_valid_name(name));
+      new_list(m, name);
+    }
+    else if (option == 4) {
+      print_search_options();
+      uint32_t new_opt = menu.get_menu_option(1, 2);
+      if (new_opt == 1) {
+        m.search_by_date();
       }
       else {
-        if(option[0] != 4) {cout << "Numbered option " << option << " doesn't exist\n";}
+        m.do_key_search();
       }
     }
-    else {
-      if (option == "-h" || option == "--help") {
-        print_help();
-      }
-      else if (option == "quit") {
-        break;
-      }
-      else { // option 2, editing existing list
-        process_name(name, m);
-      }
-    }
-  } while (option[0] != '5');
+  }
 
   cout << "Goodbye! Thank you for using my application!\n";
-  return 1;
+  return 0;
 }
 
 // --------------------- DRIVER HELPERS --------------------- //
 
-void print_options() {
-  cout << "Options:\n";
-  cout << "1. How to use Application: enter '1' or type '-h' OR '--help'\n";
-  cout << "2. Edit existing list: enter '2' or type your list's name \n";
-  cout << "3. Create new list: enter '3'\n";
-  cout << "4. Preform a Search on the Master list: enter '4'\n";
-  cout << "5. Quit: enter '5' or type 'quit'\n";
-  cout << "% ";
-}
-
-void print_search_options() {
-  cout << "Select Search Option:\n";
-  cout << "1. Timestamp search (search by year, month, date): enter '1'\n";
-  cout << "2. Keyword search (filename and contents): enter '2'\n";
-  cout << "% ";
-}
-
-void print_help() {
-  cout << "\nThis application will prompt you with '%' symbol, indicating a option to be choosen from the above options list\n";
-  cout << "The symbol will be prompted after each command, proccessed and repeated until you type '4' or 'quit'\n";
-  cout << "Your list names are sorted by starred, recent timestamps then alphabetically\n";
-  cout << "Your list will be saved when you quit the application\n\n";
-  cout << "Due to constraints we don't allow the following:\n";
-  cout << "The first character of your list name cannot be a number unless you type '2' when prompted '%'\n";
-  cout << "When modifiying list contents there are no undo's, when selected to delete/clear list, you will be prompted with a confirmation. \n";
-  cout << "Thank you for your understanding! Please email me at kyleighwestman@hotmail.com for any issues/suggestions!\n\n";
-}
-
 void process_name(string &name, MasterFiles &master) {
-    string option = "";
+    uint32_t option;
     File file;
+    Input menu;
     // find list in hash map
     do {
       // if doesn't exist, print new options
@@ -115,67 +65,44 @@ void process_name(string &name, MasterFiles &master) {
       cout << "2. Create new list named " << name << ": enter '2' \n";
       cout << "3. Print Master List of all existing file names: enter '3'\n";
       cout << "4. Preform a Search on the Master list: enter '4' \n";
-      cout << "5. Quit: enter '5' or type 'quit'\n";
-      cout << "% ";
-      cin >> option;
-      std::transform(option.begin(), option.end(), option.begin(), [](unsigned char c){ return std::tolower(c); });
+      cout << "5. Quit: enter '5' \n";
+      option = menu.get_menu_option(1, 5);
 
-      if (isdigit(option[0])) {
-        if (option.size() == 1) {
-          if (option[0] == '1') {
-            cout << "Enter list name: ";
-            cin >> name;
-          }
-          else if(option[0] == '2') {
-            cout << "Creating new list!\n";
-            new_list(master, name);
-            return;
-          }
-          else if (option[0] == '3') {
-            master.print_filenames(0, -1);
-            cout << "Enter filename or number\n";
-            cin >> name;
-            uint32_t num = master.validate_and_get_index(name);
-            if (num != -1) {
-              name = master.get_name(num);
-            }
-          }
-          else if (option[0] == '4') {
-            string new_opt;
-            do {
-              print_search_options();
-              cin >> new_opt;
-              if (new_opt.size() != 1 || (new_opt[0] != '1' || new_opt[0] != '2')) {
-                cerr << "Error: Selection out of range or not numerical\n";
-              }
-            } while (new_opt.size() == 1 && (new_opt[0] == '1' || new_opt[0] == '2'));
-            master.do_search(stoull(option));
-            cout << "Enter filename or number\n";
-            cin >> name;
-            uint32_t num = master.validate_and_get_index(name);
-            if (num != -1) {
-              name = master.get_name(num);
-            }
-          }
-          else if (option[0] == '5') {
-            cout << "Goodbye! Thank you for using my application!\n";
-            exit(1);
-          }
-          else {
-            cout << "Numbered option " << option[0] << " doesn't exist\n";
-          }
-        }
-      else {
-        cout << "Numbered option " << option << " doesn't exist\n";
+      if (option == 1) {
+        do {
+          cout << "Enter list name: ";
+          cin >> name;  
+        } while (!menu.is_valid_name(name));
       }
-    } 
-    else {
-      if (option == "quit") {
+      else if (option == 2) {
+        cout << "Creating new list!\n";
+        new_list(master, name);
+        return;
+      }
+      else if (option == 3) {
+        master.print_filenames(0, -1);
+        cout << "Enter filename or number\n";
+        cin >> name;
+        if (!all_of(name.begin(), name.end(), ::isdigit)) {
+          uint32_t num = stoull(name);
+          num = master.validate_and_get_index(num);
+          name = master.get_name(num);
+        }
+      }
+      else if (option == 4) {
+        print_search_options();
+        uint32_t new_opt = get_menu_option(1, 2);
+        if (new_opt == 1) {
+          master.search_by_date();
+        }
+        else {
+          master.do_key_search();
+        }
+      }
+      else if (option == 5) {
         cout << "Goodbye! Thank you for using my application!\n";
         exit(1);
       }
-      cout << "Error: option " << option << " doesn't exist, please enter a number only or type 'quit' \n";
-    }
     } while (master.get_num_dupes(name) == -1);
 
     master.list_found(name);
@@ -183,83 +110,76 @@ void process_name(string &name, MasterFiles &master) {
 
 void new_list(MasterFiles &master, string &name) {
   File file;
-  // if dupe (check w user), add listname (1...n)
-  if (master.get_num_dupes(name) != -1) {
-    bool change_name = master.dupe_name(name);
-    while(!change_name && master.get_num_dupes(name) != -1) {
-      cout << "Enter list name: ";
-      cin >> name;
-      change_name = master.dupe_name(name);
-    }
-    if (change_name) {
-      string num = "(" + to_string(master.get_num_dupes(name)) + ")";
-      name += num;
-    }
-  }
-  file.file_name = name + ".txt";
-  cout << "Creating file " << file.file_name << "\n";
-  cout << "...\n";
-  master.add_file(file);
-  return;
-}
+  while (master.get_num_dupes(name) != -1) {
+    cout << "The name \"" << name << "\" is already in use.\n";
+    cout << "Enter a new list name (or press Enter to auto-generate a unique name): ";
+    string user_input;
+    getline(cin, user_input);
 
-// --------------------- FILE COMMAND HELPERS --------------------- //
-
-void MasterFiles::do_search(uint32_t num) {
-  if (num == 1) { // search by yr or month or day
-    search_by_date();
-  }
-  else if (num == 2) { // keyword search
-    string key;
-    cout << "Enter keyword(s): ";
-    cin.ignore(); // Ignore leftover newline
-    getline(cin, key);
-
-    unordered_set<uint32_t> common_file_indices;
-    unordered_set<uint32_t> common_content_indices;
-
-    search_with_wildcards(key, common_file_indices, "F:");
-    search_with_wildcards(key, common_content_indices, "C:");
-
-    // Debugging
-    cout << "File indices: ";
-    for (const auto &idx : common_file_indices) {cout << idx << " ";}
-    cout << "\n";
-    cout << "Content indices: ";
-    for (const auto &idx : common_content_indices) {cout << idx << " ";}
-    cout << "\n";
-
-    // combine files into 1
-    for (const auto &idx : common_content_indices) {
-        common_file_indices.insert(idx);
-    }
-
-    if (!common_file_indices.empty()) {
-      cout << "Search results:\n";
-      for (const auto &index : common_file_indices) {
-        // debugging (shouldn't print)
-        if (index >= master_files.size()) {
-          cerr << "Error: Index " << index << " is out of bounds!\n";
-          continue;
-        }
-        cout << index << ". File: " << master_files[index].file_name << ", Timestamp: " << master_files[index].print_timestamp
-            << ", Starred: " << (master_files[index].favorite ? "Yes" : "No") << "\n";
-        }
+    if (!user_input.empty()) {
+      name = user_input;
     } 
     else {
-      cout << "No files contain all specified keywords in either filenames or content.\n";
+      // Auto-generate a unique name by appending a number
+      uint32_t dupe_count = master.get_num_dupes(name);
+      name += "(" + to_string(dupe_count) + ")";
+      cout << "Auto-generated new name: " << name << "\n";
     }
+  }
+  // Create and add the file with the finalized unique name
+  file.file_name = name;
+  cout << "Creating file " << file.file_name << "\n";
+  master.add_file(file);
+}
+// --------------------- FILE COMMAND HELPERS --------------------- //
+
+void MasterFiles::do_key_search() {
+  string key;
+  cout << "Enter keyword(s): ";
+  cin.ignore(); // Ignore leftover newline
+  getline(cin, key);
+
+  unordered_set<uint32_t> common_file_indices;
+  unordered_set<uint32_t> common_content_indices;
+
+  search_with_wildcards(key, common_file_indices, "F:");
+  search_with_wildcards(key, common_content_indices, "C:");
+
+  // Debugging
+  cout << "File indices: ";
+  for (const auto &idx : common_file_indices) {cout << idx << " ";}
+  cout << "\n";
+  cout << "Content indices: ";
+  for (const auto &idx : common_content_indices) {cout << idx << " ";}
+  cout << "\n";
+
+  // combine files into 1
+  for (const auto &idx : common_content_indices) {
+    common_file_indices.insert(idx);
+  }
+
+  if (!common_file_indices.empty()) {
+    cout << "Search results:\n";
+    for (const auto &index : common_file_indices) {
+      // debugging (shouldn't print)
+      if (index >= master_files.size()) {
+        cerr << "Error: Index " << index << " is out of bounds!\n";
+        continue;
+      }
+      cout << index << ". File: " << master_files[index].file_name << ", Timestamp: " << master_files[index].print_timestamp
+          << ", Starred: " << (master_files[index].favorite ? "Yes" : "No") << "\n";
+    }
+  } 
+  else {
+    cout << "No files contain all specified keywords in either filenames or content.\n";
   }
 }
 
 void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_set<uint32_t> &matching_indices, const std::string &prefix) {
   string regex_pattern = prefix + std::regex_replace(pattern, std::regex(R"(\*)"), ".*");
   std::regex re(regex_pattern, std::regex::icase);
-
-  // Iterate over all keys in k_search
   for (const auto &pair : k_search) {
     if (std::regex_match(pair.first, re)) {
-      // Add all indices associated with the matching key
       matching_indices.insert(pair.second.begin(), pair.second.end());
     }
   }
@@ -310,7 +230,8 @@ void MasterFiles::search_by_date() {
 
 void MasterFiles::add_file(File& file) {
   // Create and open a file
-  std::ofstream fin(file.file_name);
+  string f_name = file.file_name + ".txt";
+  std::ofstream fin(f_name);
   // check file accordingly
   if (!fin) {
     std::cerr << "Error creating the file." << std::endl;
@@ -337,52 +258,19 @@ void MasterFiles::add_file(File& file) {
   process_commands(file, insertPos);
 }
 
-bool MasterFiles::dupe_name(string &name) {
-  string option;
-  char opt = ' ';
-  do {
-    auto iter = k_search.find("F:" + name);
-    uint32_t idx = iter->second.size();
-    cout << "You aready have a list named " << name << " would you like to keep the name or change it?\n";
-    cout << "Type: 'y' to duplicate name to: " << name << "(" << idx << ")";
-    cout << "Type: 'n' to change name\n";
-    cout << "Type: 'q' to quit\n";
-    cout << "% ";
-    cin >> option;
-    opt = tolower(option[0]);
-    if (option.size() != 1 || (opt != 'y' && opt != 'n' && opt != 'q')) {
-      cout << "Error: invalid option";
-    } 
-  } while(option.size() != 1 || (opt != 'y' && opt != 'n' && opt != 'q'));
-
-  if (opt == 'y') {
-    return true;
-  }
-  else if (opt == 'n') {
-    return false;
-  }
-  cout << "Goodbye! Thank you for using my application!\n";
-  exit(1);
-}
-
 void MasterFiles::add_phrase(const string& phrase, int idx, const string& prefix) {
-  string partial;
-  for (char c : phrase) {
-    if (c == ' ') {
-        partial.clear(); // Reset on space
+  std::istringstream iss(phrase);
+  string word;
+  while (iss >> word) {
+    std::transform(word.begin(), word.end(), word.begin(), ::tolower); 
+    string key = prefix + word; 
+    auto iter = k_search.find(key);
+    if (iter == k_search.end()) {
+      k_search[key].push_back(idx);
     } 
     else {
-      partial += tolower(c); // Build partial keyword
-      string key = prefix + partial;
-      // Insert or update the hash map
-      auto iter = k_search.find(key);
-      if (iter == k_search.end()) {
-        k_search[key].push_back(idx);
-      } 
-      else {
-        if (std::find(iter->second.begin(), iter->second.end(), idx) == iter->second.end()) {
-          iter->second.push_back(idx); // Avoid duplicate idx entries
-        }
+      if (std::find(iter->second.begin(), iter->second.end(), idx) == iter->second.end()) {
+        iter->second.push_back(idx); // Avoid duplicate idx entries
       }
     }
   }
@@ -429,8 +317,8 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
   std::ifstream fin;
   fin.open(file.file_name);
   if (!fin.is_open()) {
-    cout << "open failed\n";
-    exit(1);
+    cerr << "Error: Could not open file " << file.file_name << ". Please check the file name and try again.\n";
+    return;
   }
 
   // edit time stamp of last opened 
@@ -439,7 +327,8 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
   cout << "Updating timestamp to: " << file.print_timestamp << "\n";
 
   // print options
-  file.print_cmd_options();
+  Input menu;
+  menu.print_cmd_options();
 
   // process commands
   char cmd = ' ';
@@ -453,55 +342,33 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
       if (cmd != 'p') {
         cout << "Select the position you want to edit: ";
         cin >> pos;
+        pos = validate_and_get_index(pos);
       }
     }
     if (cmd == 'r') {
-      file.print_cmd_options();
+      menu.print_cmd_options();
     }
     else if (cmd == 'a') { // add entry (to position)
-      // check that int is a valid position
-      if (file.check_int_el(pos)) {
-        string phrase;
-        cout << "Enter Phrase: ";
-        cin >> phrase;
-        // Insert the phrase into the master list at the specified position
-        file.master_list.insert(file.master_list.begin() + pos, phrase);
-        // Add the phrase to the hash map
-        add_phrase(phrase, master_idx, "C:");
-      }
-      else {
-        cerr << "Error: position is invalid in the list\n";
-      }
+      string phrase;
+      cout << "Enter Phrase: ";
+      cin >> phrase;
+      phrase = menu.is_valid_name(phrase);
+      // Insert the phrase into the master list at the specified position
+      file.master_list.insert(file.master_list.begin() + pos, phrase);
+      // Add the phrase to the hash map
+      add_phrase(phrase, master_idx, "C:");
     }
     else if (cmd == 'd') { // delete entry
-      // check that int is a valid position
-      if (file.check_int_el(pos)) {
-          file.delete_el(pos);
-      }
-      else {
-        cerr << "Error: position is invalid in the list\n";
-      }
+      file.delete_el(pos);
     }
     else if (cmd == 'b') { // move to beginning
-      // check that int is a valid position
-      if (file.check_int_el(pos)) {
-        file.move_to_beginning(pos);
-      }
-      else {
-        cerr << "Error: position is invalid in the list\n";
-      }
+      file.move_to_beginning(pos);
     }
     else if (cmd == 'e') { // move to end
-      // check that int is a valid position
-      if (file.check_int_el(pos)) {
-        file.move_to_end(pos);
-      }
-      else {
-        cerr << "Error: position is invalid in the list\n";
-      }
+      file.move_to_end(pos);
     }
     else if (cmd == 'c') {
-      cout << "Please type 'y' to confirm that you want to clear this list: ";
+      cout << "Please type 'y' to confirm that you want to clear this list (any other character otherwise): ";
       cin >> confirm;
       if (confirm == 'y') {
         for (uint32_t i = 0; i < file.master_list.size(); i++) {
@@ -510,9 +377,12 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
         file.master_list.clear();
         cout << "List cleared\n";
       }
+      else {
+        cout << "no confirmation, continuing...\n";
+      }
     }
     else if (cmd == 'x') {
-      cout << "Please type 'y' to confirm that you want to delete this list: ";
+      cout << "Please type 'y' to confirm that you want to delete this list (any other character otherwise): ";
       cin >> confirm;
       if (confirm == 'y') {
         for (uint32_t i = 0; i < file.master_list.size(); i++) {
@@ -522,6 +392,9 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
         delete_phrase("F:" + file.file_name, master_idx);
         master_files.erase(master_files.begin() + master_idx);
         cout << "List deleted\n";
+      }
+      else {
+        cout << "no confirmation, continuing...\n";
       }
     }
     else if (cmd == 's') {

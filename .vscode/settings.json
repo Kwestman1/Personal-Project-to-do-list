@@ -61,6 +61,12 @@
         "memory": "cpp",
         "system_error": "cpp",
         "type_traits": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "__tree": "cpp",
+        "deque": "cpp",
+        "queue": "cpp",
+        "regex": "cpp",
+        "set": "cpp",
+        "stack": "cpp"
     }
 }
