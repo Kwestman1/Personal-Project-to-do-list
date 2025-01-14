@@ -5,25 +5,23 @@ using namespace std;
 void print_options();
 void print_search_options();
 void print_help();
-uint32_t get_menu_option(uint32_t min, uint32_t max);
+int32_t get_menu_option(int32_t min, int32_t max);
 bool is_valid_name(const string& name);
 
 class Input {
     public:
         void print_options() {
-            cout << "Options:\n";
+            cout << "=== Menu Options ===\n";
             cout << "1. How to use Application: enter '1'\n";
             cout << "2. Edit existing list: enter '2'\n";
             cout << "3. Create new list: enter '3'\n";
             cout << "4. Preform a Search on the Master list: enter '4'\n";
-            cout << "5. Quit: enter '5' or type 'quit'\n";
-            cout << "% ";
+            cout << "5. Quit: enter '5'\n";
         }
         void print_search_options() {
-            cout << "Select Search Option:\n";
+            cout << "=== Search Options ===\n";
             cout << "1. Timestamp search (search by year, month, date): enter '1'\n";
             cout << "2. Keyword search (filename and contents): enter '2'\n";
-            cout << "% ";
         }
         void print_help() {
             cout << "\nThis application will prompt you with '%' symbol, indicating a option to be choosen from the above options list\n";
@@ -34,7 +32,7 @@ class Input {
             cout << "Thank you! Please email me at kyleighwestman@hotmail.com for any issues/suggestions!\n\n";
         }
         void print_cmd_options() {
-            cout << "File Command Options: \n";
+            cout << "=== File Command Options === \n";
             cout << "Type: 'a' to add an entry anywhere in list (list contents will be printed)\n";
             cout << "Type: 'd' to delete an entry anywhere in list (list contents will be printed)\n";
             cout << "Type: 'b' to move an entry to the beginning of the list (list contents will be printed)\n";
@@ -45,8 +43,8 @@ class Input {
             cout << "Type: 'r' to see this menu again\n";
             cout << "Type: 'q' to quit and save list\n";
         }
-        uint32_t get_menu_option(uint32_t min, uint32_t max) {
-            uint32_t option;
+        int32_t get_menu_option(uint32_t min, uint32_t max) {
+            int32_t option;
             while (true) {
                 cout << "%";
                 cin >> option;
@@ -60,7 +58,7 @@ class Input {
                 return option;
                 }
             }
-            }
+        }
 
         bool is_valid_name(const string& name) {
             if(name.empty()) {
