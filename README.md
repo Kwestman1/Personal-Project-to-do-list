@@ -1,4 +1,4 @@
-# UNDER CONSTRUCTION - local time issues and regex wildcard searching
+# UNDER CONSTRUCTION - regex wildcard searching
 
 # 💡 New implementations TBD
 - Password protected lists

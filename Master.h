@@ -49,11 +49,12 @@ class MasterFiles {
         string get_name(uint32_t idx) {
             return master_files[idx].file_name;
         }
+
         uint64_t create_timestamp(uint32_t year, uint32_t month = 1, uint32_t day = 1) {
-            // Check for invalid dates manually
             if (month < 1 || month > 12 || day < 1 || day > 31) {
-                return 0; // Invalid month/day
+                return 0; // Invalid date
             }
+
             // Leap year check
             bool isLeap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
             uint32_t daysInMonth[] = { 
@@ -61,19 +62,35 @@ class MasterFiles {
                 31, 31, 30, 31, 30, 31 
             };
             if (day > daysInMonth[month - 1]) {
-                return 0; // Invalid day (e.g., Feb 29 on a non-leap year)
+                return 0; // Invalid day
             }
+
             // Construct the timestamp
             std::tm tm = {};
-            tm.tm_year = year - 1900; // tm_year is years since 1900
-            tm.tm_mon = month - 1;   // tm_mon is 0-based
+            tm.tm_year = year - 1900;
+            tm.tm_mon = month - 1;
             tm.tm_mday = day;
             tm.tm_hour = 0;
             tm.tm_min = 0;
             tm.tm_sec = 0;
+            // Adjust to UTC
+            #ifdef _WIN32
+                // Windows version of timegm()
+                time_t utc_time = _mkgmtime(t);
+            #else 
+                time_t utc_time = timegm(&tm);
+            #endif
 
-            return static_cast<uint64_t>(std::mktime(&tm));
+            return static_cast<uint64_t>(utc_time);
         }
+
+        int getCurrentYear() {
+            auto now = std::chrono::system_clock::now();
+            std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+            std::tm *parts = std::localtime(&now_c); // Convert to local time
+            return 1900 + parts->tm_year;  // tm_year is years since 1900
+        }
+
         void update_indices(uint32_t startIdx) {
             std::cout << "Updating indices from position: " << startIdx << "\n";
 
@@ -114,26 +131,6 @@ struct Sorter {
         }
         // Tie-break: Alphabetical order of file names (case-insensitive)
         return a.file_name < b.file_name;
-    }
-};
-
-struct LowerFunctor {
-    bool operator()(const File &file, const uint64_t target) const {
-        return file.comp_timestamp < target; 
-    }
-
-    bool operator()(const uint64_t target, const File &file) const {
-        return target < file.comp_timestamp;
-    }
-};
-
-struct UpperFunctor {
-    bool operator()(const File &file, const uint64_t target) const {
-        return file.comp_timestamp <= target; 
-    }
-
-    bool operator()(const uint64_t target, const File &file) const {
-        return target <= file.comp_timestamp;
     }
 };
 

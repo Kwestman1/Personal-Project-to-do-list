@@ -7,9 +7,17 @@ void File::set_time() {
     auto timestamp = Clock::now();
     std::time_t t = Clock::to_time_t(timestamp);
 
-    // Convert local time to UTC
-    std::tm local_tm = *std::localtime(&t);
-    std::tm utc_tm = *std::gmtime(&t);
+    #ifdef _WIN32
+        // Windows thread-safe local and UTC time
+        std::tm local_tm, utc_tm;
+        localtime_s(&local_tm, &t);
+        gmtime_s(&utc_tm, &t);
+    #else
+        // POSIX thread-safe local and UTC time
+        std::tm local_tm, utc_tm;
+        localtime_r(&t, &local_tm);
+        gmtime_r(&t, &utc_tm);
+    #endif
 
     // Calculate correct timezone offset
     int timezone_offset_seconds = std::mktime(&local_tm) - std::mktime(&utc_tm);

@@ -273,22 +273,56 @@ void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_se
 
 
 void MasterFiles::search_by_date() {
-    int year, month, day;
-    std::cout << "Enter year (YYYY): ";
-    std::cin >> year;
+    int year = -1;
+    int month = -1;
+    int day = -1;
+    int current_year = getCurrentYear();
+    while (true) {
+        std::cout << "Enter year (YYYY): ";
+        std::cin >> year;
 
-    std::cout << "Enter month (MM, optional, default=all months): ";
-    std::cin >> month;
-    if (std::cin.fail() || month < 1 || month > 12) {
-        month = 0; // No specific month
-        std::cin.clear();
+        // Check if input is valid
+        if (std::cin.fail() || year < 1900 || year > current_year) {
+            std::cout << "Invalid year. Please enter a valid year (1900 - " << current_year << ").\n";
+            std::cin.clear();
+        } else {
+            break; // Valid year entered
+        }
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Clear input buffer
     }
 
-    std::cout << "Enter day (DD, optional, default=all days): ";
-    std::cin >> day;
-    if (std::cin.fail() || day < 1 || day > 31) {
-        day = 0; // No specific day
-        std::cin.clear();
+    while (true) {
+        std::cout << "Enter month (MM, optional, default=all months): ";
+        std::cin >> month;
+        if (month == -1) { // nothing entered
+          month = 0;
+          break; 
+        } 
+
+        if (std::cin.fail() || month < 1 || month > 12) {
+            std::cout << "Invalid month. Enter a number between 1 and 12, or leave blank for all months.\n";
+            std::cin.clear();
+        } else {
+            break; // Valid month entered
+        }
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+
+    while (true) {
+        std::cout << "Enter day (DD, optional, default=all days): ";
+        std::cin >> day;
+        if (day == -1) { // nothing entered
+          day = 0;
+          break; 
+        } 
+
+        if (std::cin.fail() || day < 1 || day > 31) {
+            std::cout << "Invalid day. Enter a number between 1 and 31, or leave blank for all days.\n";
+            std::cin.clear();
+        } else {
+            break; // Valid day entered
+        }
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     }
 
     uint32_t lower_bound = 0, upper_bound = 0;
@@ -306,12 +340,20 @@ void MasterFiles::search_by_date() {
         upper_bound = create_timestamp(year + 1, 1, 1) - 1;
     }
 
-    auto lower_it = std::lower_bound(master_files.begin(), master_files.end(), lower_bound, LowerFunctor());
-    auto upper_it = std::upper_bound(master_files.begin(), master_files.end(), upper_bound, UpperFunctor());
+    std::vector<File> results;
+    std::copy_if(master_files.begin(), master_files.end(), std::back_inserter(results),
+                 [=](const File &file) {
+                     return file.comp_timestamp >= lower_bound && file.comp_timestamp <= upper_bound;
+                 });
 
-    std::cout << "Files in the range:\n";
-    for (auto it = lower_it; it != upper_it; ++it) {
-        std::cout << (it->favorite ? "[Starred] " : "") << it->print_timestamp << "\n";
+    // **Print the results**
+    if (results.empty()) {
+        std::cout << "No files found in the given date range.\n";
+    } else {
+        std::cout << "Files in the range:\n";
+        for (const auto &file : results) {
+            std::cout << (file.favorite ? "[Starred] " : "") << file.print_timestamp << " (" << file.file_name << ")\n";
+        }
     }
 }
 
