@@ -1,4 +1,4 @@
-# UNDER CONSTRUCTION - FIXING COMPILER ERRORS
+# UNDER CONSTRUCTION - local time issues and regex wildcard searching
 
 # 💡 New implementations in construction
 - Password protected lists
