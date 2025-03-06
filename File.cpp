@@ -3,12 +3,21 @@
 // --------------------- TIME FUNCTIONS --------------------- //
 
 void File::set_time() {
-    TimePoint timestamp = Clock::now();
+    using Clock = std::chrono::system_clock;
+    auto timestamp = Clock::now();
     std::time_t t = Clock::to_time_t(timestamp);
-    // Adjust for the time zone offset (-8: PST, -5: EST)
-    constexpr int timezone_offset_seconds = -8 * 3600;
-    t += timezone_offset_seconds;
-    // update timestamps
+
+    // Convert local time to UTC
+    std::tm local_tm = *std::localtime(&t);
+    std::tm utc_tm = *std::gmtime(&t);
+
+    // Calculate correct timezone offset
+    int timezone_offset_seconds = std::mktime(&local_tm) - std::mktime(&utc_tm);
+
+    // Adjust timestamp to be in UTC
+    t -= timezone_offset_seconds; 
+
+    // Update timestamps
     comp_timestamp = static_cast<uint32_t>(t);
     print_timestamp = format_time(t);
 }

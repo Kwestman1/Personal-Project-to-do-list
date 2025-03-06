@@ -1,3 +1,6 @@
+#ifndef FILE_H
+#define FILE_H
+
 #include <string.h>
 #include <vector>
 #include <algorithm>
@@ -51,3 +54,5 @@ struct File {
 
     File() {} // ctor
 };
+
+#endif // FILE_H

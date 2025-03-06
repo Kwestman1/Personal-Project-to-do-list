@@ -67,6 +67,9 @@
         "queue": "cpp",
         "regex": "cpp",
         "set": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "fstream": "cpp",
+        "iomanip": "cpp",
+        "__mutex_base": "cpp"
     }
 }

@@ -26,7 +26,7 @@ bool process_name(string &name, MasterFiles &master) {
       else if (option == 2) {
         cout << "Creating new list!\n";
         new_list(master, name);
-        return;
+        return true;
       }
       else if (option == 3) {
         master.print_filenames(0, -1);
@@ -34,7 +34,7 @@ bool process_name(string &name, MasterFiles &master) {
         cin >> name;
         if (!all_of(name.begin(), name.end(), ::isdigit)) {
           uint32_t num = stoull(name);
-          num = menu.get_menu_option(0, master.get_size());
+          num = menu.get_menu_option(0, master.get_files().size());
           name = master.get_name(num);
         }
       }
@@ -112,106 +112,83 @@ void MasterFiles::add_file(File file) {
 }
 
 void MasterFiles::process_commands(File &file, uint32_t master_idx) {
-  // open and check file accordingly
-  std::ifstream fin;
-  fin.open(file.file_name);
-  if (!fin.is_open()) {
-    cerr << "Error: Could not open file " << file.file_name << ". Please check the file name and try again.\n";
-    return;
-  }
+    std::ifstream fin;
+    fin.open(file.file_name);
+    if (!fin.is_open()) {
+        std::cerr << "Error: Could not open file " << file.file_name << ". Please check the file name and try again.\n";
+        return;
+    }
 
-  // edit time stamp of last opened 
-  file.set_time();
-  cout << "File opened successfully!\n";
-  cout << "Updating timestamp to: " << file.print_timestamp << "\n";
+    file.set_time();
+    std::cout << "File opened successfully!\n";
+    std::cout << "Updating timestamp to: " << file.print_timestamp << "\n";
 
-  // print options
-  Input menu;
-  menu.print_cmd_options();
+    Input menu;
+    menu.print_cmd_options();
 
-  // process commands
-  char cmd = ' ';
-  uint32_t pos;
-  char confirm = ' ';
-  do {
-    cout << "% ";
-    cin >> cmd;
-    if (cmd == 'p' || cmd == 'a' || cmd == 'd' || cmd == 'b' || cmd == 'e') {
-      file.print_list();
-      if (cmd != 'p') {
-        cout << "Select the position you want to edit: ";
-        pos = menu.get_menu_option(0, file.get_size());;
-      }
-    }
-    if (cmd == 'r') {
-      menu.print_cmd_options();
-    }
-    else if (cmd == 'a') { // add entry (to position)
-      string phrase;
-      cout << "Enter Phrase: ";
-      cin >> phrase;
-      phrase = menu.is_valid_name(phrase);
-      // Insert the phrase into the master list at the specified position
-      file.master_list.insert(file.master_list.begin() + pos, phrase);
-      // Add the phrase to the hash map
-      add_phrase(phrase, master_idx, "C:");
-    }
-    else if (cmd == 'd') { // delete entry
-      file.delete_el(pos);
-    }
-    else if (cmd == 'b') { // move to beginning
-      file.move_to_beginning(pos);
-    }
-    else if (cmd == 'e') { // move to end
-      file.move_to_end(pos);
-    }
-    else if (cmd == 'c') {
-      cout << "Please type 'y' to confirm that you want to clear this list (any other character otherwise): ";
-      cin >> confirm;
-      if (confirm == 'y') {
-        for (uint32_t i = 0; i < file.master_list.size(); i++) {
-          delete_phrase("C:" + file.master_list[i], master_idx);
+    char cmd = ' ';
+    uint32_t pos;
+    char confirm = ' ';
+
+    do {
+        std::cout << "% ";
+        std::cin >> cmd;
+
+        if (cmd == 'p' || cmd == 'a' || cmd == 'd' || cmd == 'b' || cmd == 'e') {
+            file.print_list();
+            if (cmd != 'p') {
+                std::cout << "Select the position you want to edit: ";
+                pos = menu.get_menu_option(0, file.get_size());
+            }
         }
-        file.master_list.clear();
-        cout << "List cleared\n";
-      }
-      else {
-        cout << "no confirmation, continuing...\n";
-      }
-    }
-    else if (cmd == 'x') {
-      cout << "Please type 'y' to confirm that you want to delete this list (any other character otherwise): ";
-      cin >> confirm;
-      if (confirm == 'y') {
-        for (uint32_t i = 0; i < file.master_list.size(); i++) {
-          delete_phrase("C:" + file.master_list[i], master_idx);
+
+        if (cmd == 'a') {  // Add entry
+            std::string phrase;
+            std::cout << "Enter Phrase: ";
+            std::cin >> phrase;
+            phrase = menu.is_valid_name(phrase);
+            file.master_list.insert(file.master_list.begin() + pos, phrase);
+            add_phrase(phrase, master_idx, "C:");
+        } else if (cmd == 'd') {  // Delete entry
+            file.delete_el(pos);
+        } else if (cmd == 'b') {  // Move to beginning
+            file.move_to_beginning(pos);
+        } else if (cmd == 'e') {  // Move to end
+            file.move_to_end(pos);
+        } else if (cmd == 'c') {  // Clear list
+            std::cout << "Please type 'y' to confirm that you want to clear this list: ";
+            std::cin >> confirm;
+            if (confirm == 'y') {
+                for (const auto &phrase : file.master_list) {
+                    delete_phrase("C:" + phrase, master_idx);
+                }
+                file.master_list.clear();
+                std::cout << "List cleared\n";
+            }
+        } else if (cmd == 'x') {  // Delete list
+            std::cout << "Please type 'y' to confirm that you want to delete this list: ";
+            std::cin >> confirm;
+            if (confirm == 'y') {
+                for (const auto &phrase : file.master_list) {
+                    delete_phrase("C:" + phrase, master_idx);
+                }
+                file.master_list.clear();
+                delete_phrase("F:" + file.file_name, master_idx);
+                master_files.erase(master_files.begin() + master_idx);
+
+                // Update indices AFTER deleting an entry
+                update_indices(master_idx);
+                std::cout << "List deleted\n";
+            }
+        } else if (cmd == 's') {  // Star/Unstar
+            file.favorite = !file.favorite;
+            std::cout << (file.favorite ? "Starred!\n" : "Removed star\n");
+        } else {
+            std::cerr << "Error: command doesn't exist\n";
         }
-        file.master_list.clear();
-        delete_phrase("F:" + file.file_name, master_idx);
-        master_files.erase(master_files.begin() + master_idx);
-        cout << "List deleted\n";
-      }
-      else {
-        cout << "no confirmation, continuing...\n";
-      }
-    }
-    else if (cmd == 's') {
-      if(!file.favorite) {
-        cout << "Starred!\n";
-        file.favorite = true;
-      }
-      else {
-        cout << "Removed star\n";
-        file.favorite = false;
-      }
-    }
-    else {
-      cerr << "Error: command doesn't exist\n";
-    }
     } while (cmd != 'q');
 
-  update_indices(master_idx); // update indices to reflect priority (for ts and fav change)
-  fin.close();
+    fin.close();
 }
 
 // --------------------- SEARCH FUNCTIONS --------------------- //
@@ -259,14 +236,41 @@ void MasterFiles::do_key_search() {
 }
 
 void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_set<uint32_t> &matching_indices, const std::string &prefix) {
-  string regex_pattern = prefix + std::regex_replace(pattern, std::regex(R"(\*)"), ".*");
-  std::regex re(regex_pattern, std::regex::icase);
-  for (const auto &pair : k_search) {
-    if (std::regex_match(pair.first, re)) {
-      matching_indices.insert(pair.second.begin(), pair.second.end());
+    string regex_pattern = std::regex_replace(pattern, std::regex(R"(\*)"), ".*");
+    std::regex re(prefix + regex_pattern, std::regex::icase);
+    std::cout << "Regex pattern: " << regex_pattern << "\n";
+
+    // Debugging: Print stored files and their indices before searching
+    std::cout << "Contents of k_search:\n";
+    for (const auto &pair : k_search) {
+        std::cout << "Stored: " << pair.first << " -> ";
+        for (uint32_t idx : pair.second) {
+            std::cout << idx << " ";
+        }
+        std::cout << "\n";
     }
-  }
+    
+    for (const auto &pair : k_search) {
+        std::cout << "Checking against: " << pair.first << "\n";
+        if (std::regex_match(pair.first, re)) {
+            std::cout << "Matched: " << pair.first << ", inserting indices: ";
+            for (uint32_t idx : pair.second) {
+                std::cout << idx << " ";
+            }
+            std::cout << "\n";
+
+            matching_indices.insert(pair.second.begin(), pair.second.end());
+        }
+    }
+
+    // Debugging: Print the final collected indices
+    std::cout << "Final matching indices: ";
+    for (uint32_t idx : matching_indices) {
+        std::cout << idx << " ";
+    }
+    std::cout << "\n";
 }
+
 
 void MasterFiles::search_by_date() {
     int year, month, day;
@@ -315,7 +319,7 @@ void MasterFiles::search_by_date() {
 
 void MasterFiles::list_found(const string &name){
   auto iter_fn = k_search.find("F:" + name);
-  uint32_t idx;
+  uint32_t idx = 0;
   Input in;
   cout << "List Found!\n";
   if (iter_fn->second.size() > 1) {

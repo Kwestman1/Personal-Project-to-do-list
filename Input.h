@@ -29,7 +29,7 @@ class Input {
             cout << "Your list names are sorted by starred, recent timestamps then alphabetically\n";
             cout << "Your list will be saved when you quit the application\n\n";
             cout << "When modifiying list contents there are no undo's, when selected to delete/clear list, you will be prompted with a confirmation. \n";
-            cout << "Thank you! Please email me at kyleighwestman@hotmail.com for any issues/suggestions!\n\n";
+            cout << "Thank you! Please email me at kyleighwestman@gmail.com for any issues/suggestions!\n\n";
         }
         void print_cmd_options() {
             cout << "=== File Command Options === \n";
@@ -66,6 +66,5 @@ class Input {
                 return false;
             }
             return true;
-        
         }
 };

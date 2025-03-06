@@ -1,2 +1,0 @@
-Check getline() vs >> functionaility
-check get_menu_option 
