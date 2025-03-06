@@ -1,6 +1,6 @@
 # UNDER CONSTRUCTION - local time issues and regex wildcard searching
 
-# 💡 New implementations in construction
+# 💡 New implementations TBD
 - Password protected lists
 - Upload existing file
 - Print files names by (today, yesterday, last month, last year)
