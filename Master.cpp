@@ -15,7 +15,7 @@ bool process_name(string &name, MasterFiles &master) {
       if (option == 1) {
         do {
           cout << "Enter list name: ";
-          cin >> name;  
+          cin >> name;
         } while (!menu.is_valid_name(name));
       }
       else if (option == 2) {
@@ -62,7 +62,7 @@ void new_list(MasterFiles &master, string &name) {
 
     if (!user_input.empty()) {
       name = user_input;
-    } 
+    }
     else {
       // Auto-generate a unique name by appending a number
       int32_t dupe_count = master.get_num_dupes(name);
@@ -226,7 +226,7 @@ void MasterFiles::do_key_search() {
       cout << index << ". File: " << master_files[index].file_name << ", Timestamp: " << master_files[index].print_timestamp
           << ", Starred: " << (master_files[index].favorite ? "Yes" : "No") << "\n";
     }
-  } 
+  }
   else {
     cout << "No files contain all specified keywords in either filenames or content.\n";
   }
@@ -236,7 +236,7 @@ void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_se
     string regex_pattern = std::regex_replace(pattern, std::regex(R"(\*)"), ".*");
     std::regex re(prefix + regex_pattern, std::regex::icase);
     std::cout << "Regex pattern: " << regex_pattern << "\n";
-    
+
     for (const auto &pair : k_search) {
         std::string key_to_match = pair.first;
         // If prefix is "F:", assume all files have a .txt extension
@@ -282,8 +282,8 @@ void MasterFiles::search_by_date() {
         std::cin >> month;
         if (month == -1) { // nothing entered
           month = 0;
-          break; 
-        } 
+          break;
+        }
 
         if (std::cin.fail() || month < 1 || month > 12) {
             std::cout << "Invalid month. Enter a number between 1 and 12, or leave blank for all months.\n";
@@ -320,7 +320,7 @@ void MasterFiles::search_by_date() {
     } else if (month > 0) {
         // Search for a specific month
         lower_bound = create_timestamp(year, month, 1);
-        if (month == 12) { 
+        if (month == 12) {
             upper_bound = create_timestamp(year + 1, 1, 1) - 1; // Next year
         } else {
             upper_bound = create_timestamp(year, month + 1, 1) - 1;
@@ -375,12 +375,12 @@ void MasterFiles::add_phrase(const string& phrase, uint32_t idx, const string& p
   std::istringstream iss(phrase);
   string word;
   while (iss >> word) {
-    std::transform(word.begin(), word.end(), word.begin(), ::tolower); 
-    string key = prefix + word; 
+    std::transform(word.begin(), word.end(), word.begin(), ::tolower);
+    string key = prefix + word;
     auto iter = k_search.find(key);
     if (iter == k_search.end()) {
       k_search[key].push_back(idx);
-    } 
+    }
     else {
       if (std::find(iter->second.begin(), iter->second.end(), idx) == iter->second.end()) {
         iter->second.push_back(idx); // Avoid duplicate idx entries
@@ -411,4 +411,29 @@ void MasterFiles::delete_phrase(const string& phrase, uint32_t idx) {
       }
     }
   }
+}
+
+uint64_t MasterFiles::create_timestamp(uint32_t year, uint32_t month, uint32_t day) {
+    if (month < 1 || month > 12 || day < 1 || day > get_days_in_month(year, month)) {
+        return 0; // Invalid date
+    }
+
+    // Construct the timestamp
+    std::tm tm = {};
+    tm.tm_year = year - 1900;
+    tm.tm_mon = month - 1;
+    tm.tm_mday = day;
+    tm.tm_hour = 0;
+    tm.tm_min = 0;
+    tm.tm_sec = 0;
+
+    // Adjust to UTC
+    #ifdef _WIN32
+    // Windows version of timegm()
+    time_t utc_time = _mkgmtime(&tm);
+    #else
+    time_t utc_time = timegm(&tm);
+    #endif
+
+    return static_cast<uint64_t>(utc_time);
 }

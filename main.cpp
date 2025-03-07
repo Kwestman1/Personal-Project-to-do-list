@@ -1,5 +1,4 @@
-#include "Master.cpp"
-#include "File.cpp"
+#include "Master.h"
 
 // --------------------- DRIVER --------------------- //
 int main() {
