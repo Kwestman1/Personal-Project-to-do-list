@@ -1,9 +1,5 @@
 #include "Master.h"
-#include "File.h"
 #include <cassert>
-#include <iostream>
-#include <sstream>
-#include <unordered_set>
 
 void test_search_by_date(string& input);
 
