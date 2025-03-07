@@ -14,7 +14,7 @@ class Input {
             cout << "=== Menu Options ===\n";
             cout << "1. How to use Application: enter '1'\n";
             cout << "2. Edit existing list: enter '2'\n";
-            cout << "3. Create new list: enter '3'\n";
+            cout << "3. Create new list (automatically txt files): enter '3'\n";
             cout << "4. Preform a Search on the Master list: enter '4'\n";
             cout << "5. Quit: enter '5'\n";
         }
@@ -43,19 +43,27 @@ class Input {
             cout << "Type: 'r' to see this menu again\n";
             cout << "Type: 'q' to quit and save list\n";
         }
+        void print_doesnt_exist(string &name) {
+            cout << "Couldn't find file in database. Select new option to proceed:\n";
+            cout << "1. Retype filename: enter '1'\n";
+            cout << "2. Create new list named " << name << ": enter '2' \n";
+            cout << "3. Print Master List of all existing file names: enter '3'\n";
+            cout << "4. Preform a Search on the Master list: enter '4' \n";
+            cout << "5. Quit: enter '5' \n";
+        }
         int32_t get_menu_option(uint32_t min, uint32_t max) {
             int32_t option;
             while (true) {
                 cout << "%";
                 cin >> option;
                 if(cin.fail() || option < min || option > max) {
-                // cin.clear();
-                // cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                cerr << "Error: Please enter a number between " << min << " and " << max << ".\n";
+                    // cin.clear();
+                    // cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    cerr << "Error: Please enter a number between " << min << " and " << max << ".\n";
                 }
                 else {
-                // cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                return option;
+                    // cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    return option;
                 }
             }
         }

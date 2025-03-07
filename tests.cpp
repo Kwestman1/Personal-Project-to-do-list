@@ -117,6 +117,8 @@ void test_search_by_date(string& input) {
     File f4 = make_file("file4", mf.create_timestamp(2023, 6, 1));
     File f5 = make_file("file5", mf.create_timestamp(2024, 1, 1));
     File f6 = make_file("file6", mf.create_timestamp(2024, 2, 29)); // Leap day
+    File f7 = make_file("file7", mf.create_timestamp(2024, 12, 1));
+    File f8 = make_file("file8", mf.create_timestamp(2024, 12, 31));
 
     mf.add_file(f1);
     mf.add_file(f2);
@@ -124,6 +126,8 @@ void test_search_by_date(string& input) {
     mf.add_file(f4);
     mf.add_file(f5);
     mf.add_file(f6);
+    mf.add_file(f7);
+    mf.add_file(f8);
 
     std::istringstream simulated_input(input);
     std::streambuf *orig_cin = std::cin.rdbuf(simulated_input.rdbuf()); // Redirect std::cin
@@ -153,17 +157,40 @@ void test_search_wildcards() {
     MasterFiles mf;
     File f1 = make_file("hello", 1700000001);
     File f2 = make_file("world", 1700000002);
+    File f3 = make_file("abc", 1700000003);
+    File f4 = make_file("xyz", 1700000004);
+    File f5 = make_file("hello", 1700000005);
     mf.add_file(f1);
     mf.add_file(f2);
+    mf.add_file(f3);
+    mf.add_file(f4);
+    mf.add_file(f5);
     std::unordered_set<uint32_t> results;
 
+    mf.search_with_wildcards("*xyh*", results, "F:");
+    std::cout << "Results for '*xyh*': ";
+    for (uint32_t idx : results) {
+        std::cout << idx << " ";
+    }
+    std::cout << "\n";
+    assert(results.size() == 0); // matches none
+
+    mf.search_with_wildcards("*ab*", results, "F:");
+    std::cout << "Results for '*ab*': ";
+    for (uint32_t idx : results) {
+        std::cout << idx << " ";
+    }
+    std::cout << "\n";
+    assert(results.size() == 1); // abc
+
+    results.clear();
     mf.search_with_wildcards("*lo*", results, "F:");
     std::cout << "Results for '*lo*': ";
     for (uint32_t idx : results) {
         std::cout << idx << " ";
     }
     std::cout << "\n";
-    assert(results.size() == 1);  // Should match "hello.txt"
+    assert(results.size() == 2);  // Should match "hello.txt (2)"
 
     results.clear();
     mf.search_with_wildcards("*o*", results, "F:");
@@ -172,12 +199,19 @@ void test_search_wildcards() {
         std::cout << idx << " ";
     }
     std::cout << "\n";
-    assert(results.size() == 2);  // Should match both
+    assert(results.size() == 3);  // Should match both hello (2) and world
 
-    results.clear();
+    results.clear(); 
+    // if user searches for a txt
     mf.search_with_wildcards("*.txt", results, "F:");
     cout << "result size: " << results.size() << "\n";
-    assert(results.size() == 2);  // Should match both
+    assert(results.size() == 5);  // Should match all
+
+    results.clear(); 
+    // if user searches for a txt
+    mf.search_with_wildcards("*o.txt", results, "F:");
+    cout << "result size: " << results.size() << "\n";
+    assert(results.size() == 2);  // Should match hello (2)
 
     std::cout << "test_search_wildcards passed.\n";
 }
@@ -205,10 +239,15 @@ int main() {
     // Leap day
     date = "2024\n2\n29\n";
     test_search_by_date(date);
+    date = "2024\n12\n\n";
+    test_search_by_date(date);
     /* Invalid inf loop ~ passes
     date = "abcd\n5\n10\n";
     test_search_by_date(date);
     date = "2027\n5\n10\n";
+    test_search_by_date(date);
+    // Non Leap day
+    date = "2023\n2\n29\n";
     test_search_by_date(date);
     */
     test_update_indices();

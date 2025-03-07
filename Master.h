@@ -91,6 +91,18 @@ class MasterFiles {
             return 1900 + parts->tm_year;  // tm_year is years since 1900
         }
 
+        bool is_leap_year(int year) {
+            return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+        }
+
+        int get_days_in_month(int year, int month) {
+            if (month == 2) { 
+                return is_leap_year(year) ? 29 : 28;
+            }
+            static const int days_in_month[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+            return days_in_month[month - 1];
+        }
+
         void update_indices(uint32_t startIdx) {
             std::cout << "Updating indices from position: " << startIdx << "\n";
 

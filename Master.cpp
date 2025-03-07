@@ -9,12 +9,7 @@ bool process_name(string &name, MasterFiles &master) {
     // find list in hash map
     do {
       // if doesn't exist, print new options
-      cout << "Couldn't find file in database. Select new option to proceed:\n";
-      cout << "1. Retype filename: enter '1'\n";
-      cout << "2. Create new list named " << name << ": enter '2' \n";
-      cout << "3. Print Master List of all existing file names: enter '3'\n";
-      cout << "4. Preform a Search on the Master list: enter '4' \n";
-      cout << "5. Quit: enter '5' \n";
+      menu.print_doesnt_exist(name);
       option = menu.get_menu_option(1, 5);
 
       if (option == 1) {
@@ -206,12 +201,14 @@ void MasterFiles::do_key_search() {
   search_with_wildcards(key, common_content_indices, "C:");
 
   // Debugging
+  /*
   cout << "File indices: ";
   for (const auto &idx : common_file_indices) {cout << idx << " ";}
   cout << "\n";
   cout << "Content indices: ";
   for (const auto &idx : common_content_indices) {cout << idx << " ";}
   cout << "\n";
+  */
 
   // combine files into 1
   for (const auto &idx : common_content_indices) {
@@ -239,21 +236,17 @@ void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_se
     string regex_pattern = std::regex_replace(pattern, std::regex(R"(\*)"), ".*");
     std::regex re(prefix + regex_pattern, std::regex::icase);
     std::cout << "Regex pattern: " << regex_pattern << "\n";
-
-    // Debugging: Print stored files and their indices before searching
-    std::cout << "Contents of k_search:\n";
-    for (const auto &pair : k_search) {
-        std::cout << "Stored: " << pair.first << " -> ";
-        for (uint32_t idx : pair.second) {
-            std::cout << idx << " ";
-        }
-        std::cout << "\n";
-    }
     
     for (const auto &pair : k_search) {
-        std::cout << "Checking against: " << pair.first << "\n";
-        if (std::regex_match(pair.first, re)) {
-            std::cout << "Matched: " << pair.first << ", inserting indices: ";
+        std::string key_to_match = pair.first;
+        // If prefix is "F:", assume all files have a .txt extension
+        if (prefix == "F:") {
+            key_to_match += ".txt";
+        }
+        std::cout << "Checking against: " << key_to_match << "\n";
+
+        if (std::regex_match(key_to_match, re)) {
+            std::cout << "Matched: " << key_to_match << ", inserting indices: ";
             for (uint32_t idx : pair.second) {
                 std::cout << idx << " ";
             }
@@ -262,13 +255,6 @@ void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_se
             matching_indices.insert(pair.second.begin(), pair.second.end());
         }
     }
-
-    // Debugging: Print the final collected indices
-    std::cout << "Final matching indices: ";
-    for (uint32_t idx : matching_indices) {
-        std::cout << idx << " ";
-    }
-    std::cout << "\n";
 }
 
 
@@ -312,12 +298,13 @@ void MasterFiles::search_by_date() {
         std::cout << "Enter day (DD, optional, default=all days): ";
         std::cin >> day;
         if (day == -1) { // nothing entered
-          day = 0;
-          break; 
-        } 
+            day = 0;
+            break;
+        }
 
-        if (std::cin.fail() || day < 1 || day > 31) {
-            std::cout << "Invalid day. Enter a number between 1 and 31, or leave blank for all days.\n";
+        int max_days = get_days_in_month(year, month);
+        if (std::cin.fail() || day < 1 || day > max_days) {
+            std::cout << "Invalid day. The month you selected has " << max_days << " days.\n";
             std::cin.clear();
         } else {
             break; // Valid day entered
@@ -333,7 +320,11 @@ void MasterFiles::search_by_date() {
     } else if (month > 0) {
         // Search for a specific month
         lower_bound = create_timestamp(year, month, 1);
-        upper_bound = create_timestamp(year, month + 1, 1) - 1;
+        if (month == 12) { 
+            upper_bound = create_timestamp(year + 1, 1, 1) - 1; // Next year
+        } else {
+            upper_bound = create_timestamp(year, month + 1, 1) - 1;
+        }
     } else {
         // Search for an entire year
         lower_bound = create_timestamp(year, 1, 1);
