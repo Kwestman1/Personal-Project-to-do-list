@@ -14,7 +14,7 @@ bool process_name(string &name, MasterFiles &master) {
 
       if (option == 1) {
         do {
-          cout << "Enter list name: ";
+          cout << "Enter list name (automatically a txt file): ";
           cin >> name;
         } while (!menu.is_valid_name(name));
       }
@@ -63,10 +63,11 @@ bool process_name(string &name, MasterFiles &master) {
 void new_list(MasterFiles &master, string &name) {
   File file;
   while (master.get_num_dupes(name) != -1) {
+    string user_input;
     cout << "The name \"" << name << "\" is already in use.\n";
     cout << "Enter a new list name (or press Enter to auto-generate a unique name): ";
-    string user_input;
-    getline(cin, user_input);
+    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::getline(cin, user_input);
 
     if (!user_input.empty()) {
       name = user_input;
@@ -215,7 +216,7 @@ void MasterFiles::process_commands(uint32_t master_idx) {
             std::cout << (file.favorite ? "Starred!\n" : "Removed star\n");
         } else if (cmd == 'r'){
             menu.print_cmd_options(file.favorite);
-        } else if (cmd != 'p'){
+        } else if (cmd != 'p' && cmd != 'q'){
             std::cerr << "Error: command doesn't exist\n";
         }
     } while (cmd != 'q');
@@ -315,7 +316,7 @@ void MasterFiles::search_by_date() {
     }
 
     while (true) {
-        std::cout << "Enter month (MM, optional, default=all months): ";
+        std::cout << "Enter month (MM, or press Enter to default to all months): ";
         std::cin >> month;
         if (month == -1) { // nothing entered
           month = 0;
@@ -323,7 +324,7 @@ void MasterFiles::search_by_date() {
         }
 
         if (std::cin.fail() || month < 1 || month > 12) {
-            std::cout << "Invalid month. Enter a number between 1 and 12, or leave blank for all months.\n";
+            std::cout << "Invalid month. Enter a number between 1 and 12, or press Enter to default to all months.\n";
             std::cin.clear();
         } else {
             break; // Valid month entered
@@ -332,7 +333,7 @@ void MasterFiles::search_by_date() {
     }
 
     while (true) {
-        std::cout << "Enter day (DD, optional, default=all days): ";
+        std::cout << "Enter day (DD, or press Enter to default to all days): ";
         std::cin >> day;
         if (day == -1) { // nothing entered
             day = 0;

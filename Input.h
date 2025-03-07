@@ -47,7 +47,7 @@ class Input {
         void print_doesnt_exist(string &name) {
             cout << "\nCouldn't find file in database. Select new option to proceed:\n";
             cout << "1. Retype filename: enter '1'\n";
-            cout << "2. Create new list named '" << name << "': enter '2' \n";
+            cout << "2. Create new list named \"" << name << "\": enter '2' \n";
             cout << "3. Print Master List of all existing file names: enter '3'\n";
             cout << "4. Preform a Search on the Master list: enter '4' \n";
             cout << "5. Quit: enter '5' \n";
