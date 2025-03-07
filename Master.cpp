@@ -24,6 +24,10 @@ bool process_name(string &name, MasterFiles &master) {
         return true;
       }
       else if (option == 3) {
+        if (master.get_files().empty()) {
+            cout << "No files yet! Returning back to main menu!\n";
+            return false;
+        }
         master.print_filenames(0, -1);
         cout << "Enter filename or number\n";
         cin >> name;
@@ -34,6 +38,10 @@ bool process_name(string &name, MasterFiles &master) {
         }
       }
       else if (option == 4) {
+        if (master.get_files().empty()) {
+            cout << "No files yet! Returning back to main menu!\n";
+            return false;
+        }
         menu.print_search_options();
         uint32_t new_opt = menu.get_menu_option(1, 2);
         if (new_opt == 1) {

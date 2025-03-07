@@ -28,7 +28,9 @@ public:
     }
 
     inline void print_filenames(uint32_t start, int32_t end) {
-        if (end == -1) end = master_files.size();
+        if (end == -1) {
+            end = master_files.size();
+        }
         if (start >= master_files.size() || start > static_cast<uint32_t>(end)) {
             std::cerr << "Error: Invalid index access in print_filenames().\n";
             return;
