@@ -22,8 +22,8 @@ int main() {
         cout << "Enter list name: ";
         cin >> name;
       } while (!menu.is_valid_name(name));
-      if(process_name(name, m)) {
-        break;
+      if(m.process_name(name)) {
+        continue;
       }
     }
     else if (option == 3) {
@@ -32,7 +32,7 @@ int main() {
         cout << "Enter list name: ";
         cin >> name;
       } while (!menu.is_valid_name(name));
-      new_list(m, name);
+      m.new_list(name);
     }
     else if (option == 4) {
       menu.print_search_options();

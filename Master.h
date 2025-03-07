@@ -6,10 +6,6 @@
 // Forward declaration
 class MasterFiles;
 
-// Main helpers
-void new_list(MasterFiles &master, std::string &name);
-bool process_name(std::string &name, MasterFiles &master);
-
 // --------------------- MASTERFILES CLASS --------------------- //
 
 class MasterFiles {
@@ -21,9 +17,12 @@ public:
     MasterFiles() {}
 
     // Inline function definitions
-    inline int32_t get_num_dupes(const std::string &name) {
-        std::string key = "F:" + name;
-        return k_search.count(key) ? k_search[key].size() : -1; // Return count if found, else -1
+    inline int32_t get_num_dupes(const string &name) {
+        string key = "F:" + name;
+        if (k_search.find(key) != k_search.end()) {
+            return k_search[key].size();  
+        }
+        return -1; // no dupes
     }
 
     inline void print_filenames(uint32_t start, int32_t end) {
@@ -63,13 +62,20 @@ public:
     }
 
     inline void update_indices(uint32_t startIdx) {
-        std::unordered_map<std::string, std::vector<uint32_t>> updated_k_search;
+        if (startIdx >= master_files.size()) return;  // Prevent out-of-bounds access
+
+        // Remove affected entries from k_search
+        for (uint32_t i = startIdx; i < master_files.size(); i++) {
+            std::string key = "F:" + master_files[i].file_name;
+            k_search[key].clear();  // Clear existing indices for this key
+        }
+
+        // Update indices and repopulate k_search
         for (uint32_t i = startIdx; i < master_files.size(); i++) {
             master_files[i].file_idx = i;
             std::string key = "F:" + master_files[i].file_name;
-            updated_k_search[key].push_back(i);
+            k_search[key].push_back(i);
         }
-        k_search = std::move(updated_k_search);
     }
 
     inline void delete_file(const std::string &file_name) {
@@ -83,6 +89,8 @@ public:
     inline const std::vector<File>& get_files() const { return master_files; }
 
     // Functions that should be implemented in the Master.cpp file
+    void new_list(string &name);
+    bool process_name(string &name);
     void add_file(File &file);
     void do_key_search();
     void search_with_wildcards(const std::string &pattern, std::unordered_set<uint32_t> &matching_indices, const std::string &prefix);

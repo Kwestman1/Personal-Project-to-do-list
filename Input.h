@@ -50,7 +50,7 @@ class Input {
             cout << "2. Create new list named \"" << name << "\": enter '2' \n";
             cout << "3. Print Master List of all existing file names: enter '3'\n";
             cout << "4. Preform a Search on the Master list: enter '4' \n";
-            cout << "5. Quit: enter '5' \n";
+            cout << "5. Return to Main Menu: enter '5' \n";
         }
         void print_empty_message() {
             cout << "File is empty...choose alternative option\n";

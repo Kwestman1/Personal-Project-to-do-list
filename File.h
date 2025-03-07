@@ -45,6 +45,7 @@ struct File {
     }
 
     inline uint32_t get_size() {
+        if (master_list.empty()) {return 0;}
         return master_list.size();
     }
 

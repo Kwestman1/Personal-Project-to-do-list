@@ -2,12 +2,12 @@
 
 // --------------------- PROCESSING FUNCTIONS --------------------- //
 
-bool process_name(string &name, MasterFiles &master) {
+bool MasterFiles::process_name(string &name) {
     uint32_t option;
     File file;
     Input menu;
     // find list in hash map
-    do {
+    while (get_num_dupes(name) == -1) {
       // if doesn't exist, print new options
       menu.print_doesnt_exist(name);
       option = menu.get_menu_option(1, 5);
@@ -20,49 +20,62 @@ bool process_name(string &name, MasterFiles &master) {
       }
       else if (option == 2) {
         cout << "Creating new list!\n";
-        new_list(master, name);
+        new_list(name);
         return true;
       }
       else if (option == 3) {
-        if (master.get_files().empty()) {
+        if (get_files().empty()) {
             cout << "No files yet! Returning back to main menu!\n";
             return false;
         }
-        master.print_filenames(0, -1);
-        cout << "Enter filename or number\n";
-        cin >> name;
-        if (!all_of(name.begin(), name.end(), ::isdigit)) {
-          uint32_t num = stoull(name);
-          num = menu.get_menu_option(0, master.get_files().size());
-          name = master.get_name(num);
-        }
+        print_filenames(0, -1);
+        cout << "Enter filename or number: ";
+        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        while (std::getline(cin, name)) {
+          if (all_of(name.begin(), name.end(), ::isdigit)) { // Check if input is a number
+              try {
+                  uint32_t num = stoul(name); // Convert to unsigned integer
+                  // Validate range
+                  if (num >= 0 && num < get_files().size()) {
+                      name = get_name(num);
+                      break; // Valid number, exit loop
+                  } else {
+                      cout << "Invalid number, please enter a number between 0 and " << get_files().size() - 1 << ": ";
+                  }
+              } catch (const exception &e) {
+                  cout << "Invalid input. Please enter a valid number or filename: ";
+              }
+          } else {
+              break; // It's a filename, exit loop
+          }
+      }
       }
       else if (option == 4) {
-        if (master.get_files().empty()) {
+        if (get_files().empty()) {
             cout << "No files yet! Returning back to main menu!\n";
             return false;
         }
         menu.print_search_options();
         uint32_t new_opt = menu.get_menu_option(1, 2);
         if (new_opt == 1) {
-          master.search_by_date();
+          search_by_date();
         }
         else {
-          master.do_key_search();
+          do_key_search();
         }
       }
       else if (option == 5) {
         return true;
       }
-    } while (master.get_num_dupes(name) == -1);
+    }
 
-    master.list_found(name);
+    list_found(name);
     return false;
 }
 
-void new_list(MasterFiles &master, string &name) {
+void MasterFiles::new_list(string &name) {
   File file;
-  while (master.get_num_dupes(name) != -1) {
+  while (get_num_dupes(name) != -1) {
     string user_input;
     cout << "The name \"" << name << "\" is already in use.\n";
     cout << "Enter a new list name (or press Enter to auto-generate a unique name): ";
@@ -74,7 +87,7 @@ void new_list(MasterFiles &master, string &name) {
     }
     else {
       // Auto-generate a unique name by appending a number
-      int32_t dupe_count = master.get_num_dupes(name);
+      int32_t dupe_count = get_num_dupes(name);
       name += "(" + to_string(dupe_count) + ")";
       cout << "Auto-generated new name: " << name << "\n";
     }
@@ -82,7 +95,7 @@ void new_list(MasterFiles &master, string &name) {
   // Create and add the file with the finalized unique name
   file.file_name = name;
   cout << "Creating file " << file.file_name << "\n";
-  master.add_file(file);
+  add_file(file);
 }
 
 void MasterFiles::add_file(File &file) {
@@ -90,9 +103,9 @@ void MasterFiles::add_file(File &file) {
   string f_name = file.file_name + ".txt";
   std::ofstream fin(f_name);
   // check file accordingly
-  if (!fin) {
+  if (fin.fail()) {
     std::cerr << "Error creating the file." << std::endl;
-    exit(1);
+    return;
   }
   fin.close();
 
