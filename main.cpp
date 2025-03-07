@@ -3,7 +3,7 @@
 // --------------------- DRIVER --------------------- //
 int main() {
   std::ios_base::sync_with_stdio(false);
-  cout << "Hello!! Welcome to your personalized To-Do List!\n\n";
+  cout << "Hello!! Welcome to your personalized To-Do List!\n";
   uint32_t option;
   string name = "";
   MasterFiles m;

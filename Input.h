@@ -11,7 +11,7 @@ bool is_valid_name(const string& name);
 class Input {
     public:
         void print_options() {
-            cout << "=== Menu Options ===\n";
+            cout << "\n=== Menu Options ===\n";
             cout << "1. How to use Application: enter '1'\n";
             cout << "2. Edit existing list: enter '2'\n";
             cout << "3. Create new list (automatically txt files): enter '3'\n";
@@ -19,7 +19,7 @@ class Input {
             cout << "5. Quit: enter '5'\n";
         }
         void print_search_options() {
-            cout << "=== Search Options ===\n";
+            cout << "\n=== Search Options ===\n";
             cout << "1. Timestamp search (search by year, month, date): enter '1'\n";
             cout << "2. Keyword search (filename and contents): enter '2'\n";
         }
@@ -31,7 +31,7 @@ class Input {
             cout << "When modifiying list contents there are no undo's, when selected to delete/clear list, you will be prompted with a confirmation. \n";
             cout << "Thank you! Please email me at kyleighwestman@gmail.com for any issues/suggestions!\n\n";
         }
-        void print_cmd_options() {
+        void print_cmd_options(bool favorite) {
             cout << "=== File Command Options === \n";
             cout << "Type: 'a' to add an entry anywhere in list (list contents will be printed)\n";
             cout << "Type: 'd' to delete an entry anywhere in list (list contents will be printed)\n";
@@ -39,34 +39,38 @@ class Input {
             cout << "Type: 'e' to move an entry to the end of the list (list contents will be printed)\n";
             cout << "Type: 'c' to clear the entire lists contents\n";
             cout << "Type: 'x' to delete the entire list\n";
+            cout << "Type: 's' to " << (favorite ? "unfavorite" : "favorite") << " this list\n";
             cout << "Type: 'p' to print the entire lists contents\n";
             cout << "Type: 'r' to see this menu again\n";
             cout << "Type: 'q' to quit and save list\n";
         }
         void print_doesnt_exist(string &name) {
-            cout << "Couldn't find file in database. Select new option to proceed:\n";
+            cout << "\nCouldn't find file in database. Select new option to proceed:\n";
             cout << "1. Retype filename: enter '1'\n";
             cout << "2. Create new list named '" << name << "': enter '2' \n";
             cout << "3. Print Master List of all existing file names: enter '3'\n";
             cout << "4. Preform a Search on the Master list: enter '4' \n";
             cout << "5. Quit: enter '5' \n";
         }
+        void print_empty_message() {
+            cout << "File is empty...choose alternative option\n";
+        }
         int32_t get_menu_option(uint32_t min, uint32_t max) {
             int32_t option;
             while (true) {
-                cout << "%";
+                cout << "% ";
                 cin >> option;
-                if(cin.fail() || option < min || option > max) {
-                    // cin.clear();
-                    // cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                if (cin.fail() || option < min || option > max) {
+                    cin.clear();  // Clear error flag
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');  // Flush invalid input
                     cerr << "Error: Please enter a number between " << min << " and " << max << ".\n";
-                }
-                else {
-                    // cin.ignore(numeric_limits<streamsize>::max(), '\n');
-                    return option;
+                } else {
+                    return option; 
                 }
             }
         }
+
 
         bool is_valid_name(const string& name) {
             if(name.empty()) {

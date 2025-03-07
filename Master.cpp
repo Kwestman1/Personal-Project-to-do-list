@@ -84,7 +84,7 @@ void new_list(MasterFiles &master, string &name) {
   master.add_file(file);
 }
 
-void MasterFiles::add_file(File file) {
+void MasterFiles::add_file(File &file) {
   // Create and open a file
   string f_name = file.file_name + ".txt";
   std::ofstream fin(f_name);
@@ -111,26 +111,24 @@ void MasterFiles::add_file(File file) {
   // Update the indices in the hash map so they match the master_files indices
   update_indices(insertPos);
   cout << "New List successfully created!\n\n";
-  process_commands(file, insertPos);
+  process_commands(insertPos);
 }
 
-void MasterFiles::process_commands(File &file, uint32_t master_idx) {
+void MasterFiles::process_commands(uint32_t master_idx) {
     std::ifstream fin;
-    fin.open(file.file_name);
+    File &file = master_files[master_idx];
+    fin.open(file.file_name + ".txt");
     if (!fin.is_open()) {
         std::cerr << "Error: Could not open file " << file.file_name << ". Please check the file name and try again.\n";
         return;
     }
-
     file.set_time();
-    std::cout << "File opened successfully!\n";
-    std::cout << "Updating timestamp to: " << file.print_timestamp << "\n";
 
     Input menu;
-    menu.print_cmd_options();
+    menu.print_cmd_options(file.favorite);
 
     char cmd = ' ';
-    uint32_t pos;
+    uint32_t pos = 0;
     char confirm = ' ';
 
     do {
@@ -138,55 +136,86 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
         std::cin >> cmd;
 
         if (cmd == 'p' || cmd == 'a' || cmd == 'd' || cmd == 'b' || cmd == 'e') {
+            if (file.get_size() == 0 && cmd != 'a') {
+              menu.print_empty_message();
+              menu.print_cmd_options(file.favorite);
+              continue;
+            }
             file.print_list();
-            if (cmd != 'p') {
-                std::cout << "Select the position you want to edit: ";
+            if (cmd != 'p' && file.get_size() != 0 ) {
+              std::cout << "Select the position you want to edit: ";
+              if (cmd == 'd' || cmd == 'b' || cmd == 'e') {
+                pos = menu.get_menu_option(0, file.get_size() - 1);
+              }
+              else {
                 pos = menu.get_menu_option(0, file.get_size());
+              }
             }
         }
 
         if (cmd == 'a') {  // Add entry
-            std::string phrase;
-            std::cout << "Enter Phrase: ";
-            std::cin >> phrase;
-            phrase = menu.is_valid_name(phrase);
-            file.master_list.insert(file.master_list.begin() + pos, phrase);
-            add_phrase(phrase, master_idx, "C:");
-        } else if (cmd == 'd') {  // Delete entry
-            file.delete_el(pos);
-        } else if (cmd == 'b') {  // Move to beginning
-            file.move_to_beginning(pos);
-        } else if (cmd == 'e') {  // Move to end
-            file.move_to_end(pos);
-        } else if (cmd == 'c') {  // Clear list
-            std::cout << "Please type 'y' to confirm that you want to clear this list: ";
-            std::cin >> confirm;
-            if (confirm == 'y') {
-                for (const auto &phrase : file.master_list) {
-                    delete_phrase("C:" + phrase, master_idx);
-                }
-                file.master_list.clear();
-                std::cout << "List cleared\n";
-            }
-        } else if (cmd == 'x') {  // Delete list
-            std::cout << "Please type 'y' to confirm that you want to delete this list: ";
-            std::cin >> confirm;
-            if (confirm == 'y') {
-                for (const auto &phrase : file.master_list) {
-                    delete_phrase("C:" + phrase, master_idx);
-                }
-                file.master_list.clear();
-                delete_phrase("F:" + file.file_name, master_idx);
-                master_files.erase(master_files.begin() + master_idx);
+          string phrase;
+          std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+          std::cout << "Enter Phrase: ";
+          std::getline(std::cin, phrase);
 
-                // Update indices AFTER deleting an entry
-                update_indices(master_idx);
-                std::cout << "List deleted\n";
+          while (!menu.is_valid_name(phrase)) {
+              std::cout << "Enter Phrase: ";
+              std::getline(std::cin, phrase);
+          }
+
+          file.master_list.insert(file.master_list.begin() + pos, phrase);
+          add_phrase(phrase, master_idx, "C:");
+          file.update_file();  // Save changes to file immediately
+          std::cout << "Phrase processed, enter next command\n";
+
+      } else if (cmd == 'd') {  // Delete entry
+          file.delete_el(pos);
+          file.update_file();  // Update file after deleting an entry
+
+      } else if (cmd == 'b') {  // Move to beginning
+          file.move_to_beginning(pos);
+          file.update_file();  // Update file after moving an entry
+
+      } else if (cmd == 'e') {  // Move to end
+          file.move_to_end(pos);
+          file.update_file();  // Update file after moving an entry
+
+      } else if (cmd == 'c') {  // Clear list
+          std::cout << "Please type 'y' to confirm that you want to clear this list: ";
+          std::cin >> confirm;
+          if (confirm == 'y') {
+              for (const auto &phrase : file.master_list) {
+                  delete_phrase("C:" + phrase, master_idx);
+              }
+              file.master_list.clear();
+              file.update_file();  // Save changes after clearing
+              std::cout << "List cleared\n";
+          }
+      } else if (cmd == 'x') {  // Delete list
+          std::cout << "Please type 'y' to confirm that you want to delete this list: ";
+          std::cin >> confirm;
+          if (confirm == 'y') {
+            for (const auto &phrase : file.master_list) {
+              delete_phrase("C:" + phrase, master_idx);
             }
+            file.master_list.clear();
+            delete_file(file.file_name + ".txt");
+            delete_phrase("F:" + file.file_name, master_idx);
+            master_files.erase(master_files.begin() + master_idx);
+            // Update indices AFTER deleting an entry
+            update_indices(master_idx);
+            std::cout << "List deleted\n";
+          }
+          else {
+            cout << "Not deleting, enter next command\n";
+          }
         } else if (cmd == 's') {  // Star/Unstar
             file.favorite = !file.favorite;
             std::cout << (file.favorite ? "Starred!\n" : "Removed star\n");
-        } else {
+        } else if (cmd == 'r'){
+            menu.print_cmd_options(file.favorite);
+        } else if (cmd != 'p'){
             std::cerr << "Error: command doesn't exist\n";
         }
     } while (cmd != 'q');
@@ -199,7 +228,7 @@ void MasterFiles::process_commands(File &file, uint32_t master_idx) {
 void MasterFiles::do_key_search() {
   string key;
   cout << "Enter keyword(s): ";
-  cin.ignore(); // Ignore leftover newline
+  cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore leftover newline
   getline(cin, key);
 
   unordered_set<uint32_t> common_file_indices;
@@ -376,7 +405,7 @@ void MasterFiles::list_found(const string &name){
     cout << "Programming Error: EMPTY value, master files indexing error";
     exit(1);
   }
-  process_commands(master_files[idx], idx);
+  process_commands(idx);
 }
 
 void MasterFiles::add_phrase(const string& phrase, uint32_t idx, const string& prefix) {

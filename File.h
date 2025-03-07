@@ -10,6 +10,7 @@
 #include <fstream>
 #include <regex>
 #include <unordered_set> 
+#include <cstdio>
 using namespace std;
 using Clock = std::chrono::system_clock;
 using TimePoint = std::chrono::time_point<Clock>;
@@ -54,6 +55,7 @@ struct File {
     void delete_el(uint32_t position);
     void move_to_beginning(uint32_t position);
     void move_to_end(uint32_t position);
+    void update_file(); // write to file
 
     File() {} // Constructor
 };

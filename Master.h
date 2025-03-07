@@ -23,7 +23,6 @@ public:
     // Inline function definitions
     inline int32_t get_num_dupes(const std::string &name) {
         std::string key = "F:" + name;
-        std::cout << "Key in num_dupes: " << key << "\n";
         return k_search.count(key) ? k_search[key].size() : -1; // Return count if found, else -1
     }
 
@@ -64,8 +63,6 @@ public:
     }
 
     inline void update_indices(uint32_t startIdx) {
-        std::cout << "Updating indices from position: " << startIdx << "\n";
-
         std::unordered_map<std::string, std::vector<uint32_t>> updated_k_search;
         for (uint32_t i = startIdx; i < master_files.size(); i++) {
             master_files[i].file_idx = i;
@@ -75,13 +72,21 @@ public:
         k_search = std::move(updated_k_search);
     }
 
+    inline void delete_file(const std::string &file_name) {
+        if (std::remove(file_name.c_str()) == 0) {
+            std::cout << "File '" << file_name << "' deleted successfully.\n";
+        } else {
+            std::cerr << "Error: Could not delete file '" << file_name << "'.\n";
+        }
+    }
+
     inline const std::vector<File>& get_files() const { return master_files; }
 
     // Functions that should be implemented in the Master.cpp file
-    void add_file(File file);
+    void add_file(File &file);
     void do_key_search();
     void search_with_wildcards(const std::string &pattern, std::unordered_set<uint32_t> &matching_indices, const std::string &prefix);
-    void process_commands(File &file, uint32_t master_idx);
+    void process_commands(uint32_t master_idx);
     void search_by_date();
     void list_found(const std::string &name);
     void delete_phrase(const std::string &phrase, uint32_t idx);

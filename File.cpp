@@ -5,29 +5,18 @@
 void File::set_time() {
     using Clock = std::chrono::system_clock;
     auto timestamp = Clock::now();
-    std::time_t t = Clock::to_time_t(timestamp);
+    std::time_t t = Clock::to_time_t(timestamp);  // Get UTC time
 
     #ifdef _WIN32
-        // Windows thread-safe local and UTC time
-        std::tm local_tm, utc_tm;
-        localtime_s(&local_tm, &t);
-        gmtime_s(&utc_tm, &t);
+        std::tm utc_tm;
+        gmtime_s(&utc_tm, &t); // Get UTC time safely on Windows
     #else
-        // POSIX thread-safe local and UTC time
-        std::tm local_tm, utc_tm;
-        localtime_r(&t, &local_tm);
-        gmtime_r(&t, &utc_tm);
+        std::tm utc_tm;
+        gmtime_r(&t, &utc_tm); // Get UTC time safely on POSIX systems
     #endif
 
-    // Calculate correct timezone offset
-    int timezone_offset_seconds = std::mktime(&local_tm) - std::mktime(&utc_tm);
-
-    // Adjust timestamp to be in UTC
-    t -= timezone_offset_seconds; 
-
-    // Update timestamps
     comp_timestamp = static_cast<uint32_t>(t);
-    print_timestamp = format_time(t);
+    print_timestamp = format_time(t);  
 }
 
 string File::format_time(time_t t) const {
@@ -44,19 +33,33 @@ void File::delete_el(uint32_t position) {
         master_list[i] = master_list[i + 1];
     }
     master_list.resize(size);
-    cout << "Deleted list entry " << position << "\n";
+    cout << "Deleted list entry " << position << ". Enter next command\n";
 }
 
 void File::move_to_beginning(uint32_t position) {
     for (uint32_t i = position; i > 0; i--) {
         std::swap(master_list[i], master_list[i - 1]);
     }
-    cout << "Moved list entry " << position << " to the beginning. \n";
+    cout << "Moved list entry " << position << " to the beginning. Enter next command\n";
 }
 
 void File::move_to_end(uint32_t position) {
     for (uint32_t i = position; i < master_list.size() - 1; i++) {
         std::swap(master_list[i], master_list[i + 1]);
     }
-    cout << "Moved list entry " << position << " to the end.\n";
+    cout << "Moved list entry " << position << " to the end. Enter next command\n";
+}
+
+void File::update_file() {
+    std::ofstream fout(file_name + ".txt");  // Open file for writing (overwrite mode)
+    if (!fout) {
+        std::cerr << "Error: Could not open file " << file_name << " for writing.\n";
+        return;
+    }
+
+    for (const auto &phrase : master_list) {
+        fout << phrase << '\n';  // Write each phrase to the file
+    }
+
+    fout.close();
 }
