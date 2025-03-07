@@ -1,8 +1,8 @@
 # Important Note
-This application is not for practical use, it will NOT remember your complied lists once you quit. I am a student learning as I go, this personal project is me applying what I have learned in class to gain more practice. I am currently taking a web systems class and hope to implement a client-side dynamic page version of this project that will save lists in a SQL database specific to each logged in user.
+This application is not for practical use, it will NOT remember your complied lists once you quit. I am a student learning as I go, this personal project is me applying what I have learned in class to gain more practice. I am currently taking a web systems class and hope to, soon, implement a client-side dynamic page version of this project.
 
 # 💡 New implementations TBD
-- Create a web version to save lists for logged in users 
+- Create a web version to save lists using sessions and SQL.
 - Password protected lists
 - Upload existing file
 - Print files names by (today, yesterday, last month, last year)
