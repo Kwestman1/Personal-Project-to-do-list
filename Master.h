@@ -64,19 +64,28 @@ public:
     inline void update_indices(uint32_t startIdx) {
         if (startIdx >= master_files.size()) return;  // Prevent out-of-bounds access
 
-        // Remove affected entries from k_search
+        // Step 1: Remove old indices (only affected entries)
+        std::unordered_set<std::string> affected_keys;
         for (uint32_t i = startIdx; i < master_files.size(); i++) {
-            std::string key = "F:" + master_files[i].file_name;
-            k_search[key].clear();  // Clear existing indices for this key
+            affected_keys.insert("F:" + master_files[i].file_name);
         }
-
-        // Update indices and repopulate k_search
+        for (const auto& key : affected_keys) {
+            auto it = k_search.find(key);
+            if (it != k_search.end()) {
+                auto& vec = it->second;
+                vec.erase(std::remove_if(vec.begin(), vec.end(), [&](uint32_t idx) {
+                    return idx >= startIdx;  // Remove only affected indices
+                }), vec.end());
+            }
+        }
+        // Step 2: Re-add correct indices for affected entries
         for (uint32_t i = startIdx; i < master_files.size(); i++) {
             master_files[i].file_idx = i;
             std::string key = "F:" + master_files[i].file_name;
             k_search[key].push_back(i);
         }
     }
+
 
     inline void delete_file(const std::string &file_name) {
         if (std::remove(file_name.c_str()) == 0) {

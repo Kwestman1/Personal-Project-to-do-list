@@ -12,6 +12,14 @@ File make_file(std::string name, uint64_t timestamp, bool favorite = false) {
     return f;
 }
 
+// helper to simulate input
+void add_file_with_mock_input(MasterFiles& mf, File& file) {
+    std::istringstream simulated_input("q\n");
+    std::cin.rdbuf(simulated_input.rdbuf()); // Redirect input
+    mf.add_file(file);
+    std::cin.rdbuf(std::cin.rdbuf()); // Restore cin after call
+}
+
 void test_empty_masterfiles() {
     MasterFiles mf;
     assert(mf.get_files().size() == 0);
@@ -23,9 +31,9 @@ void test_duplicate_filenames() {
     MasterFiles mf;
     File f1 = make_file("dupe", 1700000000);
     File f2 = make_file("dupe", 1700000001);
-    mf.add_file(f1);
-    mf.add_file(f2);
-
+    add_file_with_mock_input(mf, f1);
+    add_file_with_mock_input(mf, f2);
+    cout << mf.get_num_dupes("dupe") << "\n";
     assert(mf.get_num_dupes("dupe") == 2);
     std::cout << "test_duplicate_filenames passed.\n";
 }
@@ -53,9 +61,9 @@ void test_sorting_behavior() {
     File f1 = make_file("a", 1700000001);
     File f2 = make_file("b", 1700000002, true); // Favorite
     File f3 = make_file("c", 1700000000);
-    mf.add_file(f1);
-    mf.add_file(f2);
-    mf.add_file(f3);
+    add_file_with_mock_input(mf, f1);
+    add_file_with_mock_input(mf, f2);
+    add_file_with_mock_input(mf, f3);
 
     // Should be sorted: f2 (fav), f1 (timestamp), f3 (lowest timestamp)
     assert(mf.get_name(0) == "b");
@@ -70,9 +78,9 @@ void test_sorting_same_timestamp() {
     File f2 = make_file("alpha", 1700000001);
     File f3 = make_file("charlie", 1700000001);
     
-    mf.add_file(f1);
-    mf.add_file(f2);
-    mf.add_file(f3);
+    add_file_with_mock_input(mf, f1);
+    add_file_with_mock_input(mf, f2);
+    add_file_with_mock_input(mf, f3);
 
     // Alphabetical order should apply since timestamps are identical
     assert(mf.get_name(0) == "alpha");
@@ -89,10 +97,10 @@ void test_sorting_multiple_favorites() {
     File f3 = make_file("z", 1700000002, false);
     File f4 = make_file("a", 1700000004, true);  // Favorite, newest timestamp
 
-    mf.add_file(f1);
-    mf.add_file(f2);
-    mf.add_file(f3);
-    mf.add_file(f4);
+    add_file_with_mock_input(mf, f1);
+    add_file_with_mock_input(mf, f2);
+    add_file_with_mock_input(mf, f3);
+    add_file_with_mock_input(mf, f4);
 
     // Expected order: f4 (fav, newest), f2 (fav, second newest), f1 (fav, third newest), f3 (not fav, last)
     assert(mf.get_name(0) == "a");
@@ -116,14 +124,14 @@ void test_search_by_date(string& input) {
     File f7 = make_file("file7", mf.create_timestamp(2024, 12, 1));
     File f8 = make_file("file8", mf.create_timestamp(2024, 12, 31));
 
-    mf.add_file(f1);
-    mf.add_file(f2);
-    mf.add_file(f3);
-    mf.add_file(f4);
-    mf.add_file(f5);
-    mf.add_file(f6);
-    mf.add_file(f7);
-    mf.add_file(f8);
+    add_file_with_mock_input(mf, f1);
+    add_file_with_mock_input(mf, f2);
+    add_file_with_mock_input(mf, f3);
+    add_file_with_mock_input(mf, f4);
+    add_file_with_mock_input(mf, f5);
+    add_file_with_mock_input(mf, f6);
+    add_file_with_mock_input(mf, f7);
+    add_file_with_mock_input(mf, f8);
 
     std::istringstream simulated_input(input);
     std::streambuf *orig_cin = std::cin.rdbuf(simulated_input.rdbuf()); // Redirect std::cin
@@ -139,8 +147,8 @@ void test_update_indices() {
     MasterFiles mf;
     File f1 = make_file("test1", 1700000001);
     File f2 = make_file("test2", 1700000002);
-    mf.add_file(f1);
-    mf.add_file(f2);
+    add_file_with_mock_input(mf, f1);
+    add_file_with_mock_input(mf, f2);
     mf.update_indices(0);
 
     // Ensure indices are updated properly
@@ -156,11 +164,11 @@ void test_search_wildcards() {
     File f3 = make_file("abc", 1700000003);
     File f4 = make_file("xyz", 1700000004);
     File f5 = make_file("hello", 1700000005);
-    mf.add_file(f1);
-    mf.add_file(f2);
-    mf.add_file(f3);
-    mf.add_file(f4);
-    mf.add_file(f5);
+    add_file_with_mock_input(mf, f1);
+    add_file_with_mock_input(mf, f2);
+    add_file_with_mock_input(mf, f3);
+    add_file_with_mock_input(mf, f4);
+    add_file_with_mock_input(mf, f5);
     std::unordered_set<uint32_t> results;
 
     mf.search_with_wildcards("*xyh*", results, "F:");
@@ -213,6 +221,8 @@ void test_search_wildcards() {
 }
 
 int main() {
+
+    // !! to test comment out file.set_time(); in Master.cpp process_commands !!
     test_empty_masterfiles();
     test_duplicate_filenames();
     test_invalid_index_access();
@@ -220,13 +230,19 @@ int main() {
     test_sorting_behavior();
     test_sorting_same_timestamp();
     test_sorting_multiple_favorites();
-    // exact date
-    string date = "2023\n5\n10\n";
+    test_update_indices();
+    test_search_wildcards();
+
+    // Provide actual dates for test_search_by_date
+    std::string date;
+
+    // Exact date
+    date = "2023\n5\n10\n";
     test_search_by_date(date);
-    // month only
+    // Month only
     date = "2023\n5\n\n";
     test_search_by_date(date);
-    // year only
+    // Year only
     date = "2023\n\n\n";
     test_search_by_date(date);
     // Out of range
@@ -235,9 +251,11 @@ int main() {
     // Leap day
     date = "2024\n2\n29\n";
     test_search_by_date(date);
+    // Month and year only
     date = "2024\n12\n\n";
     test_search_by_date(date);
-    /* Invalid inf loop ~ passes
+
+    /* Invalid input loop ~ passes
     date = "abcd\n5\n10\n";
     test_search_by_date(date);
     date = "2027\n5\n10\n";
@@ -246,8 +264,8 @@ int main() {
     date = "2023\n2\n29\n";
     test_search_by_date(date);
     */
-    test_update_indices();
-    test_search_wildcards();
+
     std::cout << "All Master File tests passed\n";
+
     return 0;
 }

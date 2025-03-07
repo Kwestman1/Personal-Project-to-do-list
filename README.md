@@ -8,6 +8,7 @@ This application is not for practical use, it will NOT remember your complied li
 - Password protected lists
 - Upload existing file
 - Print files names by (today, yesterday, last month, last year)
+- Swap entry files
 
 # Basic outline of application
 1. Load Introduction

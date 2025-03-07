@@ -124,6 +124,7 @@ void MasterFiles::add_file(File &file) {
   }
   // Update the indices in the hash map so they match the master_files indices
   update_indices(insertPos);
+
   cout << "New List successfully created!\n\n";
   process_commands(insertPos);
 }
@@ -136,7 +137,7 @@ void MasterFiles::process_commands(uint32_t master_idx) {
         std::cerr << "Error: Could not open file " << file.file_name << ". Please check the file name and try again.\n";
         return;
     }
-    file.set_time();
+    // file.set_time();
 
     Input menu;
     menu.print_cmd_options(file.favorite);
@@ -310,57 +311,51 @@ void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_se
 
 
 void MasterFiles::search_by_date() {
-    int year = -1;
-    int month = -1;
-    int day = -1;
+    int year = -1, month = 0, day = 0;
     int current_year = getCurrentYear();
+    std::string input;
+
     while (true) {
         std::cout << "Enter year (YYYY): ";
-        std::cin >> year;
+        std::getline(std::cin, input);
 
-        // Check if input is valid
-        if (std::cin.fail() || year < 1900 || year > current_year) {
-            std::cout << "Invalid year. Please enter a valid year (1900 - " << current_year << ").\n";
-            std::cin.clear();
-        } else {
-            break; // Valid year entered
-        }
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Clear input buffer
-    }
-
-    while (true) {
-        std::cout << "Enter month (MM, or press Enter to default to all months): ";
-        std::cin >> month;
-        if (month == -1) { // nothing entered
-          month = 0;
-          break;
+        if (input.empty()) {
+            std::cout << "Year is required. Please enter a valid year.\n";
+            continue;
         }
 
-        if (std::cin.fail() || month < 1 || month > 12) {
-            std::cout << "Invalid month. Enter a number between 1 and 12, or press Enter to default to all months.\n";
-            std::cin.clear();
-        } else {
-            break; // Valid month entered
-        }
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    }
-
-    while (true) {
-        std::cout << "Enter day (DD, or press Enter to default to all days): ";
-        std::cin >> day;
-        if (day == -1) { // nothing entered
-            day = 0;
+        try {
+            year = std::stoi(input);
+            if (year < 1900 || year > current_year) throw std::out_of_range("Invalid year");
             break;
+        } catch (...) {
+            std::cout << "Invalid input. Please enter a valid year (1900 - " << current_year << ").\n";
         }
+    }
 
-        int max_days = get_days_in_month(year, month);
-        if (std::cin.fail() || day < 1 || day > max_days) {
-            std::cout << "Invalid day. The month you selected has " << max_days << " days.\n";
-            std::cin.clear();
-        } else {
-            break; // Valid day entered
+    std::cout << "Enter month (MM, or press Enter to select all months): ";
+    std::getline(std::cin, input);
+    if (!input.empty()) {
+        try {
+            month = std::stoi(input);
+            if (month < 1 || month > 12) throw std::out_of_range("Invalid month");
+        } catch (...) {
+            std::cout << "Invalid month. Defaulting to all months.\n";
+            month = 0;
         }
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+
+    std::cout << "Enter day (DD, or press Enter to select all days): ";
+    std::getline(std::cin, input);
+    if (!input.empty()) {
+        try {
+            day = std::stoi(input);
+            int max_days = get_days_in_month(year, month > 0 ? month : 1);
+            if (day < 1 || day > max_days) throw std::out_of_range("Invalid day");
+        } catch (...) {
+            std::cout << "Invalid day. Defaulting to all days.\n";
+            day = 0;
+        }
     }
 
     uint32_t lower_bound = 0, upper_bound = 0;
@@ -371,11 +366,7 @@ void MasterFiles::search_by_date() {
     } else if (month > 0) {
         // Search for a specific month
         lower_bound = create_timestamp(year, month, 1);
-        if (month == 12) {
-            upper_bound = create_timestamp(year + 1, 1, 1) - 1; // Next year
-        } else {
-            upper_bound = create_timestamp(year, month + 1, 1) - 1;
-        }
+        upper_bound = create_timestamp(year, month == 12 ? 1 + year : month + 1, 1) - 1;
     } else {
         // Search for an entire year
         lower_bound = create_timestamp(year, 1, 1);
