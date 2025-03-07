@@ -137,7 +137,7 @@ void MasterFiles::process_commands(uint32_t master_idx) {
         std::cerr << "Error: Could not open file " << file.file_name << ". Please check the file name and try again.\n";
         return;
     }
-    // file.set_time();
+    file.set_time();
 
     Input menu;
     menu.print_cmd_options(file.favorite);
