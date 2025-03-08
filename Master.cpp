@@ -96,27 +96,14 @@ void MasterFiles::new_list(string &name) {
     }
   }
   // Create and add the file with the finalized unique name
-  file.file_name = name;
+  file.print_file_name = print_name;
+  file.hash_file_name = name;
   cout << "Creating file " << print_name << "\n";
-  add_file(file, false);
+  add_file(file);
 }
 
-void MasterFiles::add_file(File &file, bool testing = false) {
-  string f_name = file.file_name;
-
-  uint32_t insertPos = insert_file(file);
-  // add file to hash map
-  auto iter_fn = k_search.find("F:" +  master_files[insertPos].file_name);
-  if (iter_fn == k_search.end()) {
-    k_search["F:" +  master_files[insertPos].file_name].push_back(insertPos);
-  }
-  else {
-    iter_fn->second.push_back(insertPos);
-    if (get_num_dupes(f_name) > 1) {f_name += "(" + to_string(get_num_dupes(f_name) - 1) + ")";}
-  }
-  // Update the indices in the hash map so they match the master_files indices
-  update_indices(insertPos);
-
+void MasterFiles::add_file(File &file) {
+  string f_name = file.print_file_name;
   // Create and open the file
   std::ofstream fin(f_name + ".txt");
   // check file accordingly
@@ -126,17 +113,29 @@ void MasterFiles::add_file(File &file, bool testing = false) {
   }
   fin.close();
 
+  uint32_t insertPos = insert_file(file);
+  // add file to hash map
+  auto iter_fn = k_search.find("F:" + file.hash_file_name);
+  if (iter_fn == k_search.end()) {
+    k_search["F:" + file.hash_file_name].push_back(insertPos);
+  }
+  else {
+    iter_fn->second.push_back(insertPos);
+  }
+  // Update the indices in the hash map so they match the master_files indices
+  update_indices(insertPos);
+
   cout << "New List successfully created!\n\n";
-  process_commands(insertPos, testing, f_name);
+  process_commands(insertPos);
 }
 
-void MasterFiles::process_commands(uint32_t master_idx, bool testing, const string &f_name) {
-    if (testing) {return;}
+void MasterFiles::process_commands(uint32_t master_idx) {
+    // if (testing) {return;}
     std::ifstream fin;
     File file = master_files[master_idx];
-    fin.open(f_name + ".txt");
+    fin.open(file.print_file_name + ".txt");
     if (!fin.is_open()) {
-        std::cerr << "Error: Could not open file " << f_name << ". Please check the file name and try again.\n";
+        std::cerr << "Error: Could not open file " << file.print_file_name << ". Please check the file name and try again.\n";
         return;
     }
 
@@ -192,20 +191,20 @@ void MasterFiles::process_commands(uint32_t master_idx, bool testing, const stri
 
           file.master_list.insert(file.master_list.begin() + pos, phrase);
           add_phrase(phrase, master_idx, "C:");
-          file.update_file(f_name);  // Save changes to file immediately
+          file.update_file();  // Save changes to file immediately
           std::cout << "Phrase processed, enter next command\n";
 
       } else if (cmd == 'd') {  // Delete entry
           file.delete_el(pos);
-          file.update_file(f_name);  // Update file after deleting an entry
+          file.update_file();  // Update file after deleting an entry
 
       } else if (cmd == 'b') {  // Move to beginning
           file.move_to_beginning(pos);
-          file.update_file(f_name);  // Update file after moving an entry
+          file.update_file();  // Update file after moving an entry
 
       } else if (cmd == 'e') {  // Move to end
           file.move_to_end(pos);
-          file.update_file(f_name);  // Update file after moving an entry
+          file.update_file();  // Update file after moving an entry
 
       } else if (cmd == 'c') {  // Clear list
           std::cout << "Please type 'y' to confirm that you want to clear this list: ";
@@ -215,7 +214,7 @@ void MasterFiles::process_commands(uint32_t master_idx, bool testing, const stri
                   delete_phrase("C:" + phrase, master_idx);
               }
               file.master_list.clear();
-              file.update_file(f_name);  // Save changes after clearing
+              file.update_file();  // Save changes after clearing
               std::cout << "List cleared\n";
           }
       } else if (cmd == 'x') {  // Delete list
@@ -226,8 +225,8 @@ void MasterFiles::process_commands(uint32_t master_idx, bool testing, const stri
               delete_phrase("C:" + phrase, master_idx);
             }
             file.master_list.clear();
-            delete_file(file.file_name + ".txt");
-            delete_phrase("F:" + file.file_name, master_idx);
+            delete_file(file.print_file_name + ".txt");
+            delete_phrase("F:" + file.hash_file_name, master_idx);
             master_files.erase(master_files.begin() + master_idx);
             // Update indices AFTER deleting an entry
             update_indices(master_idx);
@@ -250,7 +249,7 @@ void MasterFiles::process_commands(uint32_t master_idx, bool testing, const stri
             file = master_files[master_idx];
         } else if (cmd == 'r'){
             menu.print_cmd_options(file.favorite);
-        } else if (cmd != 'p' && cmd != 'q'){
+        } else if ((cmd != 'p' && cmd != 'q') || cin.fail()){
             std::cerr << "Error: command doesn't exist\n";
         }
     } while (cmd != 'q');
@@ -295,8 +294,8 @@ void MasterFiles::do_key_search() {
         cerr << "Error: Index " << index << " is out of bounds!\n";
         continue;
       }
-      cout << index << ". File: " << master_files[index].file_name << ", Timestamp: " << master_files[index].print_timestamp
-          << ", Starred: " << (master_files[index].favorite ? "Yes" : "No") << "\n";
+      cout << index << ". File: " << master_files[index].print_file_name << ", Timestamp: " << master_files[index].print_timestamp
+           << (master_files[index].favorite ? " \u2B50" : "") << "\n";
     }
   }
   else {
@@ -305,8 +304,8 @@ void MasterFiles::do_key_search() {
 }
 
 void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_set<uint32_t> &matching_indices, const char prefix) {
-    string regex_pattern = std::regex_replace(pattern, std::regex(R"(\*)"), ".*");
-    std::regex re(prefix + regex_pattern, std::regex::icase);
+    string regex_pattern = ".*" + std::regex_replace(pattern, std::regex(R"(\*)"), ".*") + ".*";
+    std::regex re(regex_pattern, std::regex::icase);
     std::cout << "Regex pattern: " << regex_pattern << "\n";
 
     for (const auto &pair : k_search) {
@@ -314,7 +313,7 @@ void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_se
         std::string key_to_match = pair.first;
         // If prefix is "F:", assume all files have a .txt extension
         if (prefix == 'F') {
-            key_to_match += ".txt";
+          key_to_match += ".txt";
         }
         std::cout << "Checking against: " << key_to_match << "\n";
 
@@ -407,7 +406,7 @@ void MasterFiles::search_by_date() {
     } else {
         std::cout << "Files in the range:\n";
         for (const auto &file : results) {
-            std::cout << file.print_timestamp << " (" << file.file_name << ") " << (file.favorite ? " \u2B50" : "") << "\n";
+            std::cout << file.print_timestamp << " (" << file.print_file_name << ") " << (file.favorite ? " \u2B50" : "") << "\n";
         }
     }
 }
@@ -417,20 +416,17 @@ void MasterFiles::search_by_date() {
 void MasterFiles::list_found(const string &name){
   auto iter_fn = k_search.find("F:" + name);
   uint32_t idx = 0;
-  string f_name = name;
   Input in;
   cout << "List Found!\n";
   if (iter_fn->second.size() > 1) {
     cout << "More than one List name exists\n";
     cout << "Select numbered list below: \n";
     for (uint32_t i = 0; i < iter_fn->second.size(); i++) {
-      std::cout << i << ". Filename: " << master_files[iter_fn->second[i]].file_name 
-                    << (i == 0 ? "" : "(" + std::to_string(i) + ")") <<", last edited: " 
+      std::cout << i << ". Filename: " << master_files[iter_fn->second[i]].print_file_name << ", last edited: " 
                     << master_files[iter_fn->second[i]].print_timestamp 
                     << (master_files[iter_fn->second[i]].favorite ? " \u2B50" : "") << "\n";
     }
     idx = in.get_menu_option(0, iter_fn->second.size());
-    if(get_num_dupes(name) > 1) {f_name += "(" + to_string(get_num_dupes(name)) + ")";}
   }
   else if (iter_fn->second.size() == 1) {
     idx = iter_fn->second[0];
@@ -439,7 +435,7 @@ void MasterFiles::list_found(const string &name){
     cout << "Programming Error: EMPTY value, master files indexing error";
     exit(1);
   }
-  process_commands(idx, false, f_name);
+  process_commands(idx);
 }
 
 void MasterFiles::add_phrase(const string& phrase, uint32_t idx, const string& prefix) {
@@ -461,27 +457,20 @@ void MasterFiles::add_phrase(const string& phrase, uint32_t idx, const string& p
 }
 
 void MasterFiles::delete_phrase(const string& phrase, uint32_t idx) {
-  string temp = "";
-  // Locate the phrase parts in the hash map
-  for (uint32_t i = 0; i < phrase.size(); i++) {
-    if (phrase[i] == ' ') {
-      temp = "";
-    }
-    else {
-      temp += phrase[i];
-      auto it = k_search.find(phrase);
-      // If the phrase is not found, there's nothing to delete
-      if (it != k_search.end()) {
-        // Remove the idx from the vector of indices
-        auto& indices = it->second;
-        indices.erase(std::remove(indices.begin(), indices.end(), idx), indices.end());
-        // If the vector is empty, remove the key-value pair from the hash map
-        if (indices.empty()) {
-          k_search.erase(it);
-        }
+    auto it = k_search.find(phrase);
+    // If the phrase is not found, there's nothing to delete
+    if (it != k_search.end()) {
+      // Remove the idx from the vector of indices
+      auto& indices = it->second;
+      auto pos = std::find(indices.begin(), indices.end(), idx);
+      if (pos != indices.end()) { // If idx is found
+        indices.erase(pos); // Remove 
+      }
+      // If the vector is empty, remove the key-value pair from the hash map
+      if (indices.empty()) {
+        k_search.erase(it);
       }
     }
-  }
 }
 
 uint64_t MasterFiles::create_timestamp(uint32_t year, uint32_t month, uint32_t day) {

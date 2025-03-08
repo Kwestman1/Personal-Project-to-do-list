@@ -18,11 +18,11 @@ using TimePoint = std::chrono::time_point<Clock>;
 // --------------------- FILE CLASS --------------------- //
 
 struct File {
-    int32_t file_idx{ -1 }; // Position in the master file
     uint32_t comp_timestamp{ 0 };
     bool favorite{ false };
     string print_timestamp{ " " };
-    string file_name{ " " };
+    string print_file_name{ " " };
+    string hash_file_name{ " " };
     vector<string> master_list; // Contains all file entries
 
     inline void print_list() {
@@ -43,7 +43,7 @@ struct File {
     void delete_el(uint32_t position);
     void move_to_beginning(uint32_t position);
     void move_to_end(uint32_t position);
-    void update_file(const string& f_in); // write to file
+    void update_file(); // write to file
 
     File() {} // Constructor
 };
