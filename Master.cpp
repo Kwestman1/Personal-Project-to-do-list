@@ -105,7 +105,7 @@ void MasterFiles::new_list(string &name) {
 void MasterFiles::add_file(File &file) {
   string f_name = file.print_file_name;
   // Create and open the file
-  std::fstream fin(f_name + ".txt");
+  std::ofstream fin(f_name + ".txt");
   // check file accordingly
   if (fin.fail()) {
     std::cerr << "Error creating the file." << std::endl;
@@ -132,7 +132,7 @@ void MasterFiles::add_file(File &file) {
 
 void MasterFiles::process_commands(uint32_t master_idx) {
     // if (testing) {return;}
-    std::fstream fin;
+    std::ifstream fin;
     File file = master_files[master_idx];
     fin.open(file.print_file_name + ".txt");
     if (!fin.is_open()) {
@@ -195,18 +195,23 @@ void MasterFiles::process_commands(uint32_t master_idx) {
           add_phrase(phrase, master_idx, "C:");
           master_files[master_idx].update_file();  // Save changes to file immediately
           std::cout << "Phrase processed, enter next command\n";
+          file = master_files[master_idx];
 
       } else if (cmd == 'd') {  // Delete entry
-          file.delete_el(pos);
+          string phrase = file.delete_el(pos);
           file.update_file();  // Update file after deleting an entry
+          delete_phrase("C:" + phrase, master_idx);
+          master_files[master_idx] = file;
 
       } else if (cmd == 'b') {  // Move to beginning
           file.move_to_beginning(pos);
           file.update_file();  // Update file after moving an entry
+          master_files[master_idx] = file;
 
       } else if (cmd == 'e') {  // Move to end
           file.move_to_end(pos);
           file.update_file();  // Update file after moving an entry
+          master_files[master_idx] = file;
 
       } else if (cmd == 'c') {  // Clear list
           std::cout << "Please type 'y' to confirm that you want to clear this list: ";
@@ -217,6 +222,7 @@ void MasterFiles::process_commands(uint32_t master_idx) {
               }
               file.master_list.clear();
               file.update_file();  // Save changes after clearing
+              master_files[master_idx] = file;
               std::cout << "List cleared\n";
           }
       } else if (cmd == 'x') {  // Delete list
@@ -232,6 +238,7 @@ void MasterFiles::process_commands(uint32_t master_idx) {
             master_files.erase(master_files.begin() + master_idx);
             // Update indices AFTER deleting an entry
             update_indices(master_idx);
+            master_files[master_idx] = file;
             std::cout << "List deleted, Returning to main menu.\n";
             break;
           }
@@ -262,75 +269,150 @@ void MasterFiles::process_commands(uint32_t master_idx) {
 // --------------------- SEARCH FUNCTIONS --------------------- //
 
 void MasterFiles::do_key_search() {
-  string key;
-  cout << "Enter keyword(s): ";
-  cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore leftover newline
-  getline(cin, key);
-
-  unordered_set<uint32_t> common_file_indices;
-  unordered_set<uint32_t> common_content_indices;
-
-  search_with_wildcards(key, common_file_indices, 'F');
-  search_with_wildcards(key, common_content_indices, 'C');
-
-  // Debugging
-  /*
-  cout << "File indices: ";
-  for (const auto &idx : common_file_indices) {cout << idx << " ";}
-  cout << "\n";
-  cout << "Content indices: ";
-  for (const auto &idx : common_content_indices) {cout << idx << " ";}
-  cout << "\n";
-  */
-
-  // combine files into 1
-  for (const auto &idx : common_content_indices) {
-    common_file_indices.insert(idx);
-  }
-
-  if (!common_file_indices.empty()) {
-    cout << "Search results:\n";
-    for (const auto &index : common_file_indices) {
-      // debugging (shouldn't print)
-      if (index >= master_files.size()) {
-        cerr << "Error: Index " << index << " is out of bounds!\n";
-        continue;
-      }
-      cout << index << ". File: " << master_files[index].print_file_name << ", Timestamp: " << master_files[index].print_timestamp
-           << (master_files[index].favorite ? " \u2B50" : "") << "\n";
+    string input;
+    cout << "Enter keyword(s): ";
+    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore leftover newline
+    getline(cin, input);
+    
+    istringstream iss(input);
+    vector<string> keywords{istream_iterator<string>{iss}, istream_iterator<string>{}};
+    
+    if (keywords.empty()) {
+        cout << "No keywords entered. Please try again.\n";
+        return;
     }
-  }
-  else {
-    cout << "No files contain all specified keywords in either filenames or content.\n";
-  }
+    
+    unordered_set<uint32_t> common_file_indices;
+    unordered_set<uint32_t> common_content_indices;
+    
+    for (const auto &key : keywords) {
+        unordered_set<uint32_t> file_indices;
+        unordered_set<uint32_t> content_indices;
+        
+        search_with_wildcards(key, file_indices, 'F');
+        search_with_wildcards(key, content_indices, 'C');
+        
+        if (common_file_indices.empty()) {
+            common_file_indices = file_indices;
+        } else {
+            unordered_set<uint32_t> temp;
+            for (const auto &index : common_file_indices) {
+                if (file_indices.find(index) != file_indices.end()) {
+                    temp.insert(index);
+                }
+            }
+            common_file_indices = temp;
+        }
+        
+        if (common_content_indices.empty()) {
+            common_content_indices = content_indices;
+        } else {
+            unordered_set<uint32_t> temp;
+            for (const auto &index : common_content_indices) {
+                if (content_indices.find(index) != content_indices.end()) {
+                    temp.insert(index);
+                }
+            }
+            common_content_indices = temp;
+        }
+    }
+    
+    if (common_file_indices.empty() && common_content_indices.empty()) {
+        cout << "No files contain all specified keywords in either filenames or content.\n";
+        return;
+    }
+    
+    cout << "Search results for keywords:\n";
+    
+    if (!common_file_indices.empty()) {
+        cout << "  File Name Search results:\n";
+        for (const auto &index : common_file_indices) {
+            if (index >= master_files.size()) {
+                cerr << "  Error: Index " << index << " is out of bounds!\n";
+                continue;
+            }
+            cout << "  " << index << ". File: " << master_files[index].print_file_name 
+                 << ", Timestamp: " << master_files[index].print_timestamp
+                 << (master_files[index].favorite ? " \u2B50" : "") << "\n";
+        }
+    }
+    
+    if (!common_content_indices.empty()) {
+        cout << "  File Content Search results:\n";
+        for (const auto &index : common_content_indices) {
+            if (index >= master_files.size()) {
+                cerr << "  Error: Index " << index << " is out of bounds!\n";
+                continue;
+            }
+            
+            vector<pair<int, string>> scored_keywords;
+            for (const auto &pair : k_search) {
+                if (pair.first[0] != 'C') continue;
+                std::smatch match;
+                for (const auto &key : keywords) {
+                    if (std::regex_search(pair.first, match, std::regex(key, std::regex::icase))) {
+                        int score = 100 - static_cast<int>(match.str().length()) + (50 - static_cast<int>(match.position()));
+                        scored_keywords.emplace_back(score, pair.first.substr(2)); // Remove "C:" prefix
+                    }
+                }
+            }
+            
+            cout << "  List number #" << index << ". File: " << master_files[index].print_file_name 
+                 << ", Timestamp: " << master_files[index].print_timestamp
+                 << (master_files[index].favorite ? " \u2B50" : "") << "\n";
+            cout << "     Matching Keywords: ";
+            for (const auto &[score, keyword] : scored_keywords) {
+                cout << keyword << " ";
+            }
+            cout << "\n";
+        }
+    }
 }
 
-void MasterFiles::search_with_wildcards(const string &pattern, std::unordered_set<uint32_t> &matching_indices, const char prefix) {
-    string regex_pattern = ".*" + std::regex_replace(pattern, std::regex(R"(\*)"), ".*") + ".*";
+void MasterFiles::search_with_wildcards(const std::string &pattern, std::unordered_set<uint32_t> &matching_indices, const char prefix) {
+    std::string regex_pattern = ".*" + std::regex_replace(pattern, std::regex(R"(\*)"), ".*") + ".*";
     std::regex re(regex_pattern, std::regex::icase);
     std::cout << "Regex pattern: " << regex_pattern << "\n";
 
+    // Define a scoring function for better match ranking
+    auto score_match = [](const std::string &key, const std::smatch &match) {
+        int exact_match = (match.str() == key) ? 1000 : 0; // Perfect match gets the highest score
+        int match_length = static_cast<int>(match.str().length());
+        int position = static_cast<int>(match.position());
+        return exact_match + (100 - match_length) + (50 - position); // Prioritize shorter and earlier matches
+    };
+
+    // Priority queue for ranking matches
+    using ScoredMatch = std::pair<int, uint32_t>;  // (score, index)
+    std::priority_queue<ScoredMatch> pq;
+
     for (const auto &pair : k_search) {
-      if (prefix != pair.first[0]) {continue;}
+        if (prefix != pair.first[0]) { continue; }
+        
         std::string key_to_match = pair.first;
-        // If prefix is "F:", assume all files have a .txt extension
         if (prefix == 'F') {
-          key_to_match += ".txt";
+            key_to_match += ".txt";
         }
         std::cout << "Checking against: " << key_to_match << "\n";
 
-        if (std::regex_search(key_to_match, re)) {
-            std::cout << "Matched: " << key_to_match << ", inserting indices: ";
+        std::smatch match;
+        if (std::regex_search(key_to_match, match, re)) {
+            int score = score_match(key_to_match, match);
+            std::cout << "Matched: " << key_to_match << " (Score: " << score << "), inserting indices: ";
             for (uint32_t idx : pair.second) {
                 std::cout << idx << " ";
+                pq.emplace(score, idx);
             }
             std::cout << "\n";
-
-            matching_indices.insert(pair.second.begin(), pair.second.end());
         }
     }
-}
 
+    // Insert results into the matching_indices set in priority order
+    while (!pq.empty()) {
+        matching_indices.insert(pq.top().second);
+        pq.pop();
+    }
+}
 
 void MasterFiles::search_by_date() {
     int year = -1, month = 0, day = 0;
@@ -442,20 +524,15 @@ void MasterFiles::list_found(const string &name){
 }
 
 void MasterFiles::add_phrase(const string& phrase, uint32_t idx, const string& prefix) {
-  std::istringstream iss(phrase);
-  string word;
-  while (iss >> word) {
-    std::transform(word.begin(), word.end(), word.begin(), ::tolower);
-    string key = prefix + word;
+    string key = prefix + phrase; // Store the entire phrase as the key
 
     auto& indices = k_search[key];
     if (std::find(indices.begin(), indices.end(), idx) == indices.end()) {
-      indices.push_back(idx);
+        indices.push_back(idx);
     }
-    
-    // Track the keyword in reverse_map
+
+    // Track the phrase in reverse_map
     reverse_map[idx].insert(key);
-  }
 }
 
 void MasterFiles::delete_phrase(const string& phrase, uint32_t idx) {

@@ -27,13 +27,15 @@ string File::format_time(time_t t) const {
 
 // --------------------- COMMAND FUNCTIONS --------------------- //
 
-void File::delete_el(uint32_t position) {
+string File::delete_el(uint32_t position) {
+    string phrase = master_list[position];
     uint32_t size = static_cast<uint32_t>(master_list.size() - 1);
     for (uint32_t i = position; i < size; i++) {
         master_list[i] = master_list[i + 1];
     }
     master_list.resize(size);
     cout << "Deleted list entry " << position << ". Enter next command\n";
+    return phrase;
 }
 
 void File::move_to_beginning(uint32_t position) {

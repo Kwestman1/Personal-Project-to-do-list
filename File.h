@@ -11,6 +11,7 @@
 #include <regex>
 #include <unordered_set> 
 #include <cstdio>
+#include <queue>
 using namespace std;
 using Clock = std::chrono::system_clock;
 using TimePoint = std::chrono::time_point<Clock>;
@@ -39,8 +40,8 @@ struct File {
     // Functions that should be implemented in File.cpp
     void set_time();
     string format_time(time_t t) const;
-    void append(uint32_t position);
-    void delete_el(uint32_t position);
+    void append(uint32_t position); 
+    string delete_el(uint32_t position); // return the deleted phrase so we can remove from hash_map
     void move_to_beginning(uint32_t position);
     void move_to_end(uint32_t position);
     void update_file(); // write to file
