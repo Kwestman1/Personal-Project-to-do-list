@@ -6,10 +6,9 @@ This application is not for practical use, it will NOT remember your complied li
 # 💡 New implementations TBD
 - Change list name
 - Create a web version to save lists using sessions and SQL.
-- Password protected lists
-- Upload existing file
+    - Password protected lists
+    - Upload existing file
 - Print files names by (today, yesterday, last month, last year)
-- Swap entry files
 
 # Basic outline of application
 1. Load Introduction
