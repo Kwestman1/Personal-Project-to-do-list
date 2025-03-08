@@ -6,9 +6,23 @@ bool MasterFiles::process_name(string &name) {
     uint32_t option;
     File file;
     Input menu;
+    int fileNumber = -1; // indicator that not special case
 
     // find list in hash map
     while (get_num_dupes(name) == -1) {
+      size_t openParen = name.find_last_of('(');
+      size_t closeParen = name.find_last_of(')');
+      // Special case, enters file name with (x)
+      if (openParen != string::npos && closeParen != string::npos && openParen < closeParen) {
+          string numStr = name.substr(openParen + 1, closeParen - openParen - 1);
+          try {
+              fileNumber = stoi(numStr);
+          } catch (exception &e) {
+              cout << "Error in finding unique file number, Returning to Main Menu.\n";
+              return true;  // If parsing fails, return
+          }
+          break; // exit loop
+      }
       // if doesn't exist, print new options
       menu.print_doesnt_exist(name);
       option = menu.get_menu_option(1, 5);
@@ -31,7 +45,7 @@ bool MasterFiles::process_name(string &name) {
             return false;
         }
         print_filenames();
-        cout << "Enter filename or number: ";
+        cout << "Enter filename: ";
         cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         while (std::getline(cin, name)) {
           if (all_of(name.begin(), name.end(), ::isdigit)) { // Check if input is a number
@@ -48,9 +62,9 @@ bool MasterFiles::process_name(string &name) {
                   cout << "Invalid input. Please enter a valid number or filename: ";
               }
           } else {
-              break; // It's a filename, exit loop
+              break; // It's a filename, break out of loop
           }
-      }
+        }
       }
       else if (option == 4) {
         if (get_files().empty()) {
@@ -71,7 +85,7 @@ bool MasterFiles::process_name(string &name) {
       }
     }
 
-    list_found(name);
+    list_found(name, fileNumber);
     return false;
 }
 
@@ -272,13 +286,13 @@ void MasterFiles::process_commands(uint32_t master_idx) {
 void MasterFiles::do_key_search() {
     string input;
     cout << "Enter keyword(s): ";
-    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignore leftover newline
-    getline(cin, input);
-    
+    // cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
+    getline(cin, input); 
+    // cout << "DEBUG: Received input = '" << input << "'\n";
     istringstream iss(input);
     vector<string> keywords{istream_iterator<string>{iss}, istream_iterator<string>{}};
-    
-    if (keywords.empty()) {
+    // Check if input was actually empty or whitespace
+    if (input.empty() || keywords.empty()) {
         cout << "No keywords entered. Please try again.\n";
         return;
     }
@@ -377,7 +391,7 @@ void MasterFiles::do_key_search() {
 void MasterFiles::search_with_wildcards(const std::string &pattern, std::unordered_set<uint32_t> &matching_indices, const char prefix) {
     std::string regex_pattern = ".*" + std::regex_replace(pattern, std::regex(R"(\*)"), ".*") + ".*";
     std::regex re(regex_pattern, std::regex::icase);
-    std::cout << "Regex pattern: " << regex_pattern << "\n";
+    // cout << "Regex pattern: " << regex_pattern << "\n";
 
     // Define a scoring function for better match ranking
     auto score_match = [](const std::string &key, const std::smatch &match) {
@@ -398,7 +412,7 @@ void MasterFiles::search_with_wildcards(const std::string &pattern, std::unorder
         if (prefix == 'F') {
             key_to_match += ".txt";
         }
-        std::cout << "Checking against: " << key_to_match << "\n";
+        // std::cout << "Checking against: " << key_to_match << "\n";
 
         std::smatch match;
         if (std::regex_search(key_to_match, match, re)) {
@@ -502,12 +516,17 @@ void MasterFiles::search_by_date() {
 
 // --------------------- HELPERS --------------------- //
 
-void MasterFiles::list_found(const string &name){
-  auto iter_fn = k_search.find("F:" + name);
+void MasterFiles::list_found(const string &name, int32_t fileNumber){
   uint32_t idx = 0;
   Input in;
+  auto iter_fn = k_search.find("F:" + name);
   cout << "List Found!\n";
-  if (iter_fn->second.size() > 1) {
+  if (fileNumber != -1) { // special case
+    auto it = find_if(master_files.begin(), master_files.end(),
+                      [&name](const File& f) { return f.print_file_name == name; });
+    idx = distance(master_files.begin(), it);
+  }
+  else if (iter_fn->second.size() > 1) {
     cout << "More than one List name exists\n";
     cout << "Select from numbered list below: \n";
     for (uint32_t i = 0; i < iter_fn->second.size(); i++) {
@@ -517,7 +536,6 @@ void MasterFiles::list_found(const string &name){
     }
     idx = in.get_menu_option(0, iter_fn->second.size());
     idx = iter_fn->second[idx];
-    cout << "Now editing file: " << master_files[idx].print_file_name << "\n";
   }
   else if (iter_fn->second.size() == 1) {
     idx = iter_fn->second[0];
@@ -526,6 +544,7 @@ void MasterFiles::list_found(const string &name){
     cout << "Programming Error: EMPTY value, master files indexing error";
     exit(1);
   }
+  cout << "Now editing file: " << master_files[idx].print_file_name << "\n";
   process_commands(idx);
 }
 

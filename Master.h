@@ -151,7 +151,7 @@ public:
     void search_with_wildcards(const std::string &pattern, std::unordered_set<uint32_t> &matching_indices, const char prefix);
     void process_commands(uint32_t master_idx);
     void search_by_date();
-    void list_found(const std::string &name);
+    void list_found(const std::string &name, int32_t fileNumber);
     void delete_phrase(const std::string &phrase, uint32_t idx);
     void add_phrase(const std::string &phrase, uint32_t idx, const std::string &prefix);
     uint64_t create_timestamp(uint32_t year, uint32_t month, uint32_t day);
