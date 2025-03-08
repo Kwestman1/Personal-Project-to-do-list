@@ -75,7 +75,7 @@ public:
     inline void update_indices(uint32_t startIdx) {
         if (startIdx >= master_files.size()) return;  // Prevent out-of-bounds access
 
-        // Step 1: Remove old indices (both filenames & content)
+        // Step 1: Collect affected keys (both filenames & content)
         std::vector<std::string> affected_keys;
         for (uint32_t i = startIdx; i < master_files.size(); i++) {
             affected_keys.push_back("F:" + master_files[i].hash_file_name);
@@ -84,22 +84,44 @@ public:
             }
         }
 
+        // Step 1.1: Remove old indices from `k_search` AND `reverse_map`
         for (const auto& key : affected_keys) {
+            // Remove indices from `k_search`
             auto it = k_search.find(key);
             if (it != k_search.end()) {
                 auto& vec = it->second;
+
+                // Gather affected indices before modifying `k_search`
+                std::vector<uint32_t> affected_indices;
+                for (auto idx : vec) {
+                    if (idx >= startIdx) {
+                        affected_indices.push_back(idx);
+                    }
+                }
+
+                // Remove only the affected indices
                 vec.erase(std::remove_if(vec.begin(), vec.end(), [&](uint32_t idx) {
-                    return idx >= startIdx;  // Remove only affected indices
+                    return idx >= startIdx;
                 }), vec.end());
+
+                // Remove corresponding entries from `reverse_map`
+                for (uint32_t idx : affected_indices) {
+                    auto rev_it = reverse_map.find(idx);
+                    if (rev_it != reverse_map.end()) {
+                        rev_it->second.erase(key);  // Remove the specific key from reverse_map[idx]
+                    }
+                }
             }
         }
+
         // Step 2: Re-add correct indices for affected entries
         for (uint32_t i = startIdx; i < master_files.size(); i++) {
             std::string fileKey = "F:" + master_files[i].hash_file_name;
             k_search[fileKey].push_back(i);
 
-            for (const auto& phrase : reverse_map[i]) {
+            for (const auto& phrase : master_files[i].master_list) {
                 k_search[phrase].push_back(i);  // Re-add content keywords
+                reverse_map[i].insert(phrase);  // Restore content keys
             }
         }
     }

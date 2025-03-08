@@ -6,68 +6,96 @@ bool MasterFiles::process_name(string &name) {
     uint32_t option;
     File file;
     Input menu;
-    // find list in hash map
-    while (get_num_dupes(name) == -1) {
-      // if doesn't exist, print new options
-      menu.print_doesnt_exist(name);
-      option = menu.get_menu_option(1, 5);
 
-      if (option == 1) {
-        do {
-          cout << "Enter list name (automatically a txt file): ";
-          cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
-          getline(cin, name);
-        } while (!menu.is_valid_name(name));
-      }
-      else if (option == 2) {
-        cout << "Creating new list!\n";
-        new_list(name);
-        return true;
-      }
-      else if (option == 3) {
-        if (get_files().empty()) {
-            cout << "No files yet! Returning back to main menu!\n";
-            return false;
+    // Step 1: Extract base name and number in parentheses (if any)
+    string baseName = name;
+    int fileNumber = 0;
+
+    size_t openParen = name.find_last_of('(');
+    size_t closeParen = name.find_last_of(')');
+
+    if (openParen != string::npos && closeParen != string::npos && openParen < closeParen) {
+        string numStr = name.substr(openParen + 1, closeParen - openParen - 1);
+
+        try {
+            fileNumber = stoi(numStr);
+            baseName = name.substr(0, openParen - 1);  // Trim the "(x)" part
+        } catch (exception &e) {
+            fileNumber = 0;  // If parsing fails, assume it's the base file
         }
-        print_filenames();
-        cout << "Enter filename or number: ";
-        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        while (std::getline(cin, name)) {
-          if (all_of(name.begin(), name.end(), ::isdigit)) { // Check if input is a number
-              try {
-                  uint32_t num = stoul(name); // Convert to unsigned integer
-                  // Validate range
-                  if (num >= 0 && num < get_files().size()) {
-                      name = get_name(num);
-                      break; // Valid number, exit loop
-                  } else {
-                      cout << "Invalid number, please enter a number between 0 and " << get_files().size() - 1 << ": ";
-                  }
-              } catch (const exception &e) {
-                  cout << "Invalid input. Please enter a valid number or filename: ";
-              }
-          } else {
-              break; // It's a filename, exit loop
-          }
-      }
-      }
-      else if (option == 4) {
-        if (get_files().empty()) {
-            cout << "No files yet! Returning back to main menu!\n";
-            return false;
+    }
+
+    // Step 2: Check for the file in hash map using the base name
+    while (get_num_dupes(baseName) == -1) {
+        menu.print_doesnt_exist(name);
+        option = menu.get_menu_option(1, 5);
+
+        if (option == 1) {
+            do {
+                cout << "Enter list name (automatically a txt file): ";
+                cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+                getline(cin, name);
+            } while (!menu.is_valid_name(name));
+        } 
+        else if (option == 2) {
+            cout << "Creating new list!\n";
+            new_list(name);
+            return true;
+        } 
+        else if (option == 3) {
+            if (get_files().empty()) {
+                cout << "No files yet! Returning back to main menu!\n";
+                return false;
+            }
+            print_filenames();
+            cout << "Enter filename or number: ";
+            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            while (std::getline(cin, name)) {
+                if (all_of(name.begin(), name.end(), ::isdigit)) { 
+                    try {
+                        uint32_t num = stoul(name); 
+                        if (num >= 0 && num < get_files().size()) {
+                            name = get_name(num);
+                            break;
+                        } else {
+                            cout << "Invalid number, please enter a number between 0 and " << get_files().size() - 1 << ": ";
+                        }
+                    } catch (const exception &e) {
+                        cout << "Invalid input. Please enter a valid number or filename: ";
+                    }
+                } else {
+                    break;
+                }
+            }
+        } 
+        else if (option == 4) {
+            if (get_files().empty()) {
+                cout << "No files yet! Returning back to main menu!\n";
+                return false;
+            }
+            menu.print_search_options();
+            uint32_t new_opt = menu.get_menu_option(1, 2);
+            if (new_opt == 1) {
+                search_by_date();
+            } else {
+                do_key_search();
+            }
+        } 
+        else if (option == 5) {
+            return true;
         }
-        menu.print_search_options();
-        uint32_t new_opt = menu.get_menu_option(1, 2);
-        if (new_opt == 1) {
-          search_by_date();
+    }
+
+    // Step 3: Find the correct file index if there are duplicates
+    auto it = k_search.find(baseName);
+    vector<uint32_t> file_indices = it->second;
+    if (!file_indices.empty()) {
+        if (fileNumber > 0 && fileNumber < file_indices.size()) {
+            name = get_name(file_indices[fileNumber]); // Select exact match if exists
+        } else {
+            name = get_name(file_indices[0]); // Default to the first found file
+            cout << "Unique list number not found, defaulting to list name: " << name << "\n";
         }
-        else {
-          do_key_search();
-        }
-      }
-      else if (option == 5) {
-        return true;
-      }
     }
 
     list_found(name);
@@ -348,6 +376,10 @@ void MasterFiles::do_key_search() {
             vector<pair<int, string>> scored_keywords;
             for (const auto &pair : k_search) {
                 if (pair.first[0] != 'C') continue;
+                // Ensure this content is actually linked to the current file index
+                if (find(pair.second.begin(), pair.second.end(), index) == pair.second.end()) {
+                    continue;  // Skip if the index is not in the vector
+                }
                 std::smatch match;
                 for (const auto &key : keywords) {
                     if (std::regex_search(pair.first, match, std::regex(key, std::regex::icase))) {
@@ -511,6 +543,7 @@ void MasterFiles::list_found(const string &name){
                     << (master_files[iter_fn->second[i]].favorite ? " \u2B50" : "") << "\n";
     }
     idx = in.get_menu_option(0, iter_fn->second.size());
+    idx = iter_fn->second[idx];
     cout << "Now editing file: " << master_files[idx].print_file_name << "\n";
   }
   else if (iter_fn->second.size() == 1) {

@@ -70,6 +70,7 @@
         "stack": "cpp",
         "fstream": "cpp",
         "iomanip": "cpp",
-        "__mutex_base": "cpp"
+        "__mutex_base": "cpp",
+        "filesystem": "cpp"
     }
 }
