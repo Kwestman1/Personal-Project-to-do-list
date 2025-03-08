@@ -1,7 +1,7 @@
 # Keyword Search - Currently fixing
 
 # Important Note
-This application is not for practical use, it will NOT remember your complied lists once you quit. I am a student learning as I go, this personal project is me applying what I have learned in class to gain more practice. I am currently taking a web systems class and hope to, soon, implement a client-side dynamic page version of this project.
+This application is not for practical use, it will NOT remember your complied lists once you quit. I am a student learning as I go, this personal project is me applying what I have learned in class to gain more practice. I am currently taking a web systems class and hope to, soon, implement a client-side dynamic page version of this project that will be more practical.
 
 # 💡 New implementations TBD
 - Change list name
