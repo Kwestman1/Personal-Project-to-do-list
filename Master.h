@@ -21,6 +21,7 @@ struct Sorter {
 class MasterFiles {
 private:
     std::unordered_map<std::string, std::vector<uint32_t>> k_search; // Key: keyword, val: indices in master file 
+    std::unordered_map<uint32_t, std::unordered_set<std::string>> reverse_map; // for content keywords
     std::vector<File> master_files; // Contains all filenames
 
 public:
@@ -74,11 +75,15 @@ public:
     inline void update_indices(uint32_t startIdx) {
         if (startIdx >= master_files.size()) return;  // Prevent out-of-bounds access
 
-        // Step 1: Remove old indices (only affected entries)
+        // Step 1: Remove old indices (both filenames & content)
         std::vector<std::string> affected_keys;
         for (uint32_t i = startIdx; i < master_files.size(); i++) {
             affected_keys.push_back("F:" + master_files[i].hash_file_name);
+            for (const auto& phrase : reverse_map[i]) {
+                affected_keys.push_back(phrase);  // Includes "C:..." phrases
+            }
         }
+
         for (const auto& key : affected_keys) {
             auto it = k_search.find(key);
             if (it != k_search.end()) {
@@ -90,10 +95,15 @@ public:
         }
         // Step 2: Re-add correct indices for affected entries
         for (uint32_t i = startIdx; i < master_files.size(); i++) {
-            std::string key = "F:" + master_files[i].hash_file_name;
-            k_search[key].push_back(i);
+            std::string fileKey = "F:" + master_files[i].hash_file_name;
+            k_search[fileKey].push_back(i);
+
+            for (const auto& phrase : reverse_map[i]) {
+                k_search[phrase].push_back(i);  // Re-add content keywords
+            }
         }
     }
+
 
     inline uint32_t insert_file(File& file) {  // Accept rvalue reference
         auto it = std::lower_bound(master_files.begin(), master_files.end(), file, Sorter());

@@ -105,7 +105,7 @@ void MasterFiles::new_list(string &name) {
 void MasterFiles::add_file(File &file) {
   string f_name = file.print_file_name;
   // Create and open the file
-  std::ofstream fin(f_name + ".txt");
+  std::fstream fin(f_name + ".txt");
   // check file accordingly
   if (fin.fail()) {
     std::cerr << "Error creating the file." << std::endl;
@@ -114,6 +114,7 @@ void MasterFiles::add_file(File &file) {
   fin.close();
 
   uint32_t insertPos = insert_file(file);
+  file = master_files[insertPos];
   // add file to hash map
   auto iter_fn = k_search.find("F:" + file.hash_file_name);
   if (iter_fn == k_search.end()) {
@@ -131,7 +132,7 @@ void MasterFiles::add_file(File &file) {
 
 void MasterFiles::process_commands(uint32_t master_idx) {
     // if (testing) {return;}
-    std::ifstream fin;
+    std::fstream fin;
     File file = master_files[master_idx];
     fin.open(file.print_file_name + ".txt");
     if (!fin.is_open()) {
@@ -159,6 +160,7 @@ void MasterFiles::process_commands(uint32_t master_idx) {
     do {
         std::cout << "% ";
         std::cin >> cmd;
+        file = master_files[master_idx];
 
         if (cmd == 'p' || cmd == 'a' || cmd == 'd' || cmd == 'b' || cmd == 'e') {
             if (file.get_size() == 0 && cmd != 'a') {
@@ -189,9 +191,9 @@ void MasterFiles::process_commands(uint32_t master_idx) {
               std::getline(std::cin, phrase);
           }
 
-          file.master_list.insert(file.master_list.begin() + pos, phrase);
+          master_files[master_idx].master_list.insert(master_files[master_idx].master_list.begin() + pos, phrase);
           add_phrase(phrase, master_idx, "C:");
-          file.update_file();  // Save changes to file immediately
+          master_files[master_idx].update_file();  // Save changes to file immediately
           std::cout << "Phrase processed, enter next command\n";
 
       } else if (cmd == 'd') {  // Delete entry
@@ -420,13 +422,14 @@ void MasterFiles::list_found(const string &name){
   cout << "List Found!\n";
   if (iter_fn->second.size() > 1) {
     cout << "More than one List name exists\n";
-    cout << "Select numbered list below: \n";
+    cout << "Select from numbered list below: \n";
     for (uint32_t i = 0; i < iter_fn->second.size(); i++) {
       std::cout << i << ". Filename: " << master_files[iter_fn->second[i]].print_file_name << ", last edited: " 
                     << master_files[iter_fn->second[i]].print_timestamp 
                     << (master_files[iter_fn->second[i]].favorite ? " \u2B50" : "") << "\n";
     }
     idx = in.get_menu_option(0, iter_fn->second.size());
+    cout << "Now editing file: " << master_files[idx].print_file_name << "\n";
   }
   else if (iter_fn->second.size() == 1) {
     idx = iter_fn->second[0];
@@ -444,32 +447,38 @@ void MasterFiles::add_phrase(const string& phrase, uint32_t idx, const string& p
   while (iss >> word) {
     std::transform(word.begin(), word.end(), word.begin(), ::tolower);
     string key = prefix + word;
-    auto iter = k_search.find(key);
-    if (iter == k_search.end()) {
-      k_search[key].push_back(idx);
+
+    auto& indices = k_search[key];
+    if (std::find(indices.begin(), indices.end(), idx) == indices.end()) {
+      indices.push_back(idx);
     }
-    else {
-      if (std::find(iter->second.begin(), iter->second.end(), idx) == iter->second.end()) {
-        iter->second.push_back(idx); // Avoid duplicate idx entries
-      }
-    }
+    
+    // Track the keyword in reverse_map
+    reverse_map[idx].insert(key);
   }
 }
 
 void MasterFiles::delete_phrase(const string& phrase, uint32_t idx) {
     auto it = k_search.find(phrase);
-    // If the phrase is not found, there's nothing to delete
     if (it != k_search.end()) {
-      // Remove the idx from the vector of indices
-      auto& indices = it->second;
-      auto pos = std::find(indices.begin(), indices.end(), idx);
-      if (pos != indices.end()) { // If idx is found
-        indices.erase(pos); // Remove 
-      }
-      // If the vector is empty, remove the key-value pair from the hash map
-      if (indices.empty()) {
-        k_search.erase(it);
-      }
+        auto& indices = it->second;
+
+        // Remove idx from the indices list
+        indices.erase(std::remove(indices.begin(), indices.end(), idx), indices.end());
+
+        // If no more indices reference this phrase, remove the phrase entirely
+        if (indices.empty()) {
+            k_search.erase(it);
+        }
+    }
+
+    // Remove phrase reference from reverse_map
+    auto rev_it = reverse_map.find(idx);
+    if (rev_it != reverse_map.end()) {
+        rev_it->second.erase(phrase);
+        if (rev_it->second.empty()) {
+            reverse_map.erase(rev_it);
+        }
     }
 }
 
