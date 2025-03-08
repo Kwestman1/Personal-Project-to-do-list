@@ -15,7 +15,8 @@ bool MasterFiles::process_name(string &name) {
       if (option == 1) {
         do {
           cout << "Enter list name (automatically a txt file): ";
-          cin >> name;
+          cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+          getline(cin, name);
         } while (!menu.is_valid_name(name));
       }
       else if (option == 2) {
@@ -95,10 +96,10 @@ void MasterFiles::new_list(string &name) {
   // Create and add the file with the finalized unique name
   file.file_name = name;
   cout << "Creating file " << file.file_name << "\n";
-  add_file(file);
+  add_file(file, false);
 }
 
-void MasterFiles::add_file(File &file) {
+void MasterFiles::add_file(File &file, bool testing = false) {
   // Create and open a file
   string f_name = file.file_name + ".txt";
   std::ofstream fin(f_name);
@@ -109,11 +110,7 @@ void MasterFiles::add_file(File &file) {
   }
   fin.close();
 
-  // insert file into sorted master_file
-  auto it = std::lower_bound(master_files.begin(), master_files.end(), file, Sorter());
-  uint32_t insertPos = std::distance(master_files.begin(), it);
-  master_files.insert(it, std::move(file));
-  master_files[insertPos].file_idx = insertPos;
+  uint32_t insertPos = insert_file(file);
   // add file to hash map
   auto iter_fn = k_search.find("F:" +  master_files[insertPos].file_name);
   if (iter_fn == k_search.end()) {
@@ -126,18 +123,28 @@ void MasterFiles::add_file(File &file) {
   update_indices(insertPos);
 
   cout << "New List successfully created!\n\n";
-  process_commands(insertPos);
+  process_commands(insertPos, testing);
 }
 
-void MasterFiles::process_commands(uint32_t master_idx) {
+void MasterFiles::process_commands(uint32_t master_idx, bool testing = false) {
+    if (testing) {return;}
     std::ifstream fin;
-    File &file = master_files[master_idx];
+    File file = master_files[master_idx];
     fin.open(file.file_name + ".txt");
     if (!fin.is_open()) {
         std::cerr << "Error: Could not open file " << file.file_name << ". Please check the file name and try again.\n";
         return;
     }
+
     file.set_time();
+    // Update priority Step 1: remove File
+    master_files.erase(master_files.begin() + master_idx);
+    // Step 2: Reinsert in sorted order
+    uint32_t new_idx = insert_file(file);
+    // Step 3: Update indices in k_search
+    master_idx = std::min(master_idx, static_cast<uint32_t>(new_idx));
+    update_indices(master_idx);
+    file = master_files[master_idx];
 
     Input menu;
     menu.print_cmd_options(file.favorite);
@@ -220,14 +227,23 @@ void MasterFiles::process_commands(uint32_t master_idx) {
             master_files.erase(master_files.begin() + master_idx);
             // Update indices AFTER deleting an entry
             update_indices(master_idx);
-            std::cout << "List deleted\n";
+            std::cout << "List deleted, Returning to main menu.\n";
+            break;
           }
           else {
             cout << "Not deleting, enter next command\n";
           }
         } else if (cmd == 's') {  // Star/Unstar
             file.favorite = !file.favorite;
-            std::cout << (file.favorite ? "Starred!\n" : "Removed star\n");
+            std::cout << (file.favorite ? "Starred!, enter next command\n" : "Removed star, enter next command\n");
+            // Update priority Step 1: remove File
+            master_files.erase(master_files.begin() + master_idx);
+            // Step 2: Reinsert in sorted order
+            uint32_t new_idx = insert_file(file);
+            // Step 3: Update indices in k_search
+            master_idx = std::min(master_idx, static_cast<uint32_t>(new_idx));
+            update_indices(master_idx);
+            file = master_files[master_idx];
         } else if (cmd == 'r'){
             menu.print_cmd_options(file.favorite);
         } else if (cmd != 'p' && cmd != 'q'){
@@ -317,6 +333,7 @@ void MasterFiles::search_by_date() {
 
     while (true) {
         std::cout << "Enter year (YYYY): ";
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         std::getline(std::cin, input);
 
         if (input.empty()) {
@@ -326,7 +343,7 @@ void MasterFiles::search_by_date() {
 
         try {
             year = std::stoi(input);
-            if (year < 1900 || year > current_year) throw std::out_of_range("Invalid year");
+            if (year < 1900 || year > current_year)throw std::out_of_range("Invalid year");
             break;
         } catch (...) {
             std::cout << "Invalid input. Please enter a valid year (1900 - " << current_year << ").\n";
@@ -385,7 +402,7 @@ void MasterFiles::search_by_date() {
     } else {
         std::cout << "Files in the range:\n";
         for (const auto &file : results) {
-            std::cout << (file.favorite ? "[Starred] " : "") << file.print_timestamp << " (" << file.file_name << ")\n";
+            std::cout << file.print_timestamp << " (" << file.file_name << ") " << (file.favorite ? " \u2B50" : "") << "\n";
         }
     }
 }

@@ -6,6 +6,16 @@
 // Forward declaration
 class MasterFiles;
 
+// --------------------- FUNCTORS --------------------- //
+
+struct Sorter {
+    bool operator()(const File &a, const File &b) const {
+        if (a.favorite != b.favorite) return a.favorite > b.favorite;
+        if (a.comp_timestamp != b.comp_timestamp) return a.comp_timestamp > b.comp_timestamp;
+        return a.file_name < b.file_name; // Alphabetical tie-breaker
+    }
+};
+
 // --------------------- MASTERFILES CLASS --------------------- //
 
 class MasterFiles {
@@ -26,15 +36,22 @@ public:
     }
 
     inline void print_filenames(uint32_t start, int32_t end) {
+        Input m;
         if (end == -1) {
             end = master_files.size();
+        }
+        if (master_files.empty()) {
+            m.print_empty_message();
+            return;
         }
         if (start >= master_files.size() || start > static_cast<uint32_t>(end)) {
             std::cerr << "Error: Invalid index access in print_filenames().\n";
             return;
         }
         for (uint32_t i = start; i < end; i++) {
-            std::cout << i << ". " << master_files[i].file_name << "\n";
+            std::cout << i << ". Filename: " << master_files[i].file_name << ", last edited: " 
+                    << master_files[i].print_timestamp 
+                    << (master_files[i].favorite ? " \u2B50" : "") << "\n";
         }
     }
 
@@ -65,9 +82,9 @@ public:
         if (startIdx >= master_files.size()) return;  // Prevent out-of-bounds access
 
         // Step 1: Remove old indices (only affected entries)
-        std::unordered_set<std::string> affected_keys;
+        std::vector<std::string> affected_keys;
         for (uint32_t i = startIdx; i < master_files.size(); i++) {
-            affected_keys.insert("F:" + master_files[i].file_name);
+            affected_keys.push_back("F:" + master_files[i].file_name);
         }
         for (const auto& key : affected_keys) {
             auto it = k_search.find(key);
@@ -86,6 +103,13 @@ public:
         }
     }
 
+    inline uint32_t insert_file(File& file) {  // Accept rvalue reference
+        auto it = std::lower_bound(master_files.begin(), master_files.end(), file, Sorter());
+        uint32_t insertPos = std::distance(master_files.begin(), it);
+        master_files.insert(it, std::move(file));  // Move into the vector
+        master_files[insertPos].file_idx = insertPos;
+        return insertPos;
+    }
 
     inline void delete_file(const std::string &file_name) {
         if (std::remove(file_name.c_str()) == 0) {
@@ -100,23 +124,13 @@ public:
     // Functions that should be implemented in the Master.cpp file
     void new_list(string &name);
     bool process_name(string &name);
-    void add_file(File &file);
+    void add_file(File &file, bool testing);
     void do_key_search();
     void search_with_wildcards(const std::string &pattern, std::unordered_set<uint32_t> &matching_indices, const std::string &prefix);
-    void process_commands(uint32_t master_idx);
+    void process_commands(uint32_t master_idx, bool testing);
     void search_by_date();
     void list_found(const std::string &name);
     void delete_phrase(const std::string &phrase, uint32_t idx);
     void add_phrase(const std::string &phrase, uint32_t idx, const std::string &prefix);
     uint64_t create_timestamp(uint32_t year, uint32_t month, uint32_t day);
-};
-
-// --------------------- FUNCTORS --------------------- //
-
-struct Sorter {
-    bool operator()(const File &a, const File &b) const {
-        if (a.favorite != b.favorite) return a.favorite > b.favorite;
-        if (a.comp_timestamp != b.comp_timestamp) return a.comp_timestamp > b.comp_timestamp;
-        return a.file_name < b.file_name; // Alphabetical tie-breaker
-    }
 };

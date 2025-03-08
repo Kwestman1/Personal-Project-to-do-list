@@ -15,13 +15,15 @@ class Input {
             cout << "1. How to use Application: enter '1'\n";
             cout << "2. Edit existing list: enter '2'\n";
             cout << "3. Create new list (automatically txt files): enter '3'\n";
-            cout << "4. Preform a Search on the Master list: enter '4'\n";
-            cout << "5. Quit: enter '5'\n";
+            cout << "4. Print List names: enter '4'\n";
+            cout << "5. Preform a Search on the Master list: enter '5'\n";
+            cout << "6. Quit: enter '6'\n";
         }
         void print_search_options() {
             cout << "\n=== Search Options ===\n";
             cout << "1. Timestamp search (search by year, month, date): enter '1'\n";
             cout << "2. Keyword search (filename and contents): enter '2'\n";
+            cout << "3. Return to Main Menu: enter '3'\n";
         }
         void print_help() {
             cout << "\nThis application will prompt you with '%' symbol, indicating a option to be choosen from the above options list\n";

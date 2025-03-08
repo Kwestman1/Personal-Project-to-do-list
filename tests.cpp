@@ -16,8 +16,20 @@ File make_file(std::string name, uint64_t timestamp, bool favorite = false) {
 void add_file_with_mock_input(MasterFiles& mf, File& file) {
     std::istringstream simulated_input("q\n");
     std::cin.rdbuf(simulated_input.rdbuf()); // Redirect input
-    mf.add_file(file);
+    mf.add_file(file, true); // Preserve timestamp
     std::cin.rdbuf(std::cin.rdbuf()); // Restore cin after call
+}
+
+// Test case ensuring the timestamp is not modified
+void test_add_file_keeps_timestamp() {
+    MasterFiles mf;
+    File f1 = make_file("test1", 1700000001); // Predefined timestamp
+    time_t initial_time = f1.comp_timestamp;
+
+    add_file_with_mock_input(mf, f1);
+
+    assert(mf.get_files()[0].comp_timestamp == initial_time); // Ensure timestamp is unchanged
+    std::cout << "test_add_file_keeps_timestamp passed.\n";
 }
 
 void test_empty_masterfiles() {
@@ -223,6 +235,7 @@ void test_search_wildcards() {
 int main() {
 
     // !! to test comment out file.set_time(); in Master.cpp process_commands !!
+    test_add_file_keeps_timestamp();
     test_empty_masterfiles();
     test_duplicate_filenames();
     test_invalid_index_access();
