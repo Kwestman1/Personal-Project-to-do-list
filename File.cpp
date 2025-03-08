@@ -50,10 +50,10 @@ void File::move_to_end(uint32_t position) {
     cout << "Moved list entry " << position << " to the end. Enter next command\n";
 }
 
-void File::update_file() {
-    std::ofstream fout(file_name + ".txt");  // Open file for writing (overwrite mode)
+void File::update_file(const string& f_in) {
+    std::ofstream fout(f_in + ".txt");  // Open file for writing (overwrite mode)
     if (!fout) {
-        std::cerr << "Error: Could not open file " << file_name << " for writing.\n";
+        std::cerr << "Error: Could not open file " << f_in << " for writing.\n";
         return;
     }
 

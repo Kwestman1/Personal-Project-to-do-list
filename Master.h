@@ -35,25 +35,40 @@ public:
         return -1; // no dupes
     }
 
-    inline void print_filenames(uint32_t start, int32_t end) {
+    inline void print_filenames() {
         Input m;
-        if (end == -1) {
-            end = master_files.size();
-        }
         if (master_files.empty()) {
             m.print_empty_message();
             return;
         }
-        if (start >= master_files.size() || start > static_cast<uint32_t>(end)) {
-            std::cerr << "Error: Invalid index access in print_filenames().\n";
-            return;
-        }
-        for (uint32_t i = start; i < end; i++) {
-            std::cout << i << ". Filename: " << master_files[i].file_name << ", last edited: " 
-                    << master_files[i].print_timestamp 
-                    << (master_files[i].favorite ? " \u2B50" : "") << "\n";
+
+        // Iterate over k_search to process filenames with duplicates
+        for (const auto &pair : k_search) {
+            const std::vector<uint32_t> &indices = pair.second;
+
+            // Only process filenames (skip other keyword types in k_search)
+            if (pair.first.find("F:") != 0) {
+                continue;
+            }
+
+            // Print all occurrences of the filename with unique numbering
+            for (size_t i = 0; i < indices.size(); i++) {
+                uint32_t index = indices[i];
+                std::string display_name = master_files[index].file_name;
+
+                // Append numbering for duplicates
+                if (indices.size() > 1) {
+                    display_name += "(" + std::to_string(i + 1) + ")";
+                }
+
+                std::cout << index << ". Filename: " << display_name  
+                        << ", last edited: " << master_files[index].print_timestamp 
+                        << (master_files[index].favorite ? " \u2B50" : "") 
+                        << "\n";
+            }
         }
     }
+
 
     inline std::string get_name(uint32_t idx) {
         return master_files[idx].file_name;
@@ -126,8 +141,8 @@ public:
     bool process_name(string &name);
     void add_file(File &file, bool testing);
     void do_key_search();
-    void search_with_wildcards(const std::string &pattern, std::unordered_set<uint32_t> &matching_indices, const std::string &prefix);
-    void process_commands(uint32_t master_idx, bool testing);
+    void search_with_wildcards(const std::string &pattern, std::unordered_set<uint32_t> &matching_indices, const char prefix);
+    void process_commands(uint32_t master_idx, bool testing, const string &f_name);
     void search_by_date();
     void list_found(const std::string &name);
     void delete_phrase(const std::string &phrase, uint32_t idx);

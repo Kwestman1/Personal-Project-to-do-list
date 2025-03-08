@@ -37,7 +37,7 @@ int main() {
       m.new_list(name);
     }
     else if (option == 4) {
-      m.print_filenames(0, m.get_files().size());
+      m.print_filenames();
     }
     else if (option == 5) {
       menu.print_search_options();

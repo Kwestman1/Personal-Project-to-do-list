@@ -183,7 +183,7 @@ void test_search_wildcards() {
     add_file_with_mock_input(mf, f5);
     std::unordered_set<uint32_t> results;
 
-    mf.search_with_wildcards("*xyh*", results, "F:");
+    mf.search_with_wildcards("*xyh*", results, 'F');
     std::cout << "Results for '*xyh*': ";
     for (uint32_t idx : results) {
         std::cout << idx << " ";
@@ -191,7 +191,7 @@ void test_search_wildcards() {
     std::cout << "\n";
     assert(results.size() == 0); // matches none
 
-    mf.search_with_wildcards("*ab*", results, "F:");
+    mf.search_with_wildcards("*ab*", results, 'F');
     std::cout << "Results for '*ab*': ";
     for (uint32_t idx : results) {
         std::cout << idx << " ";
@@ -200,7 +200,7 @@ void test_search_wildcards() {
     assert(results.size() == 1); // abc
 
     results.clear();
-    mf.search_with_wildcards("*lo*", results, "F:");
+    mf.search_with_wildcards("*lo*", results, 'F');
     std::cout << "Results for '*lo*': ";
     for (uint32_t idx : results) {
         std::cout << idx << " ";
@@ -209,7 +209,7 @@ void test_search_wildcards() {
     assert(results.size() == 2);  // Should match "hello.txt (2)"
 
     results.clear();
-    mf.search_with_wildcards("*o*", results, "F:");
+    mf.search_with_wildcards("*o*", results, 'F');
     std::cout << "Results for '*o*': ";
     for (uint32_t idx : results) {
         std::cout << idx << " ";
@@ -219,13 +219,13 @@ void test_search_wildcards() {
 
     results.clear(); 
     // if user searches for a txt
-    mf.search_with_wildcards("*.txt", results, "F:");
+    mf.search_with_wildcards("*.txt", results, 'F');
     cout << "result size: " << results.size() << "\n";
     assert(results.size() == 5);  // Should match all
 
     results.clear(); 
     // if user searches for a txt
-    mf.search_with_wildcards("*o.txt", results, "F:");
+    mf.search_with_wildcards("*o.txt", results, 'F');
     cout << "result size: " << results.size() << "\n";
     assert(results.size() == 2);  // Should match hello (2)
 

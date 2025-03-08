@@ -31,19 +31,6 @@ struct File {
         }
     }
 
-    inline void add_file_contents() {
-        ifstream fin(file_name);
-        if (!fin) {
-            cerr << "Error opening the file.\n";
-            exit(1);
-        }
-        string line;
-        while (getline(fin, line)) {
-            master_list.push_back(line);
-        }
-        fin.close();
-    }
-
     inline uint32_t get_size() {
         if (master_list.empty()) {return 0;}
         return master_list.size();
@@ -56,7 +43,7 @@ struct File {
     void delete_el(uint32_t position);
     void move_to_beginning(uint32_t position);
     void move_to_end(uint32_t position);
-    void update_file(); // write to file
+    void update_file(const string& f_in); // write to file
 
     File() {} // Constructor
 };
