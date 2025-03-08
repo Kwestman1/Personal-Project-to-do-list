@@ -83,7 +83,6 @@ public:
                 affected_keys.push_back(phrase);  // Includes "C:..." phrases
             }
         }
-
         // Step 1.1: Remove old indices from `k_search` AND `reverse_map`
         for (const auto& key : affected_keys) {
             // Remove indices from `k_search`
