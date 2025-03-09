@@ -286,102 +286,84 @@ void MasterFiles::process_commands(uint32_t master_idx) {
 void MasterFiles::do_key_search() {
     string input;
     cout << "Enter keyword(s): ";
-    // cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
     getline(cin, input); 
-    // cout << "DEBUG: Received input = '" << input << "'\n";
+
     istringstream iss(input);
     vector<string> keywords{istream_iterator<string>{iss}, istream_iterator<string>{}};
-    // Check if input was actually empty or whitespace
+
     if (input.empty() || keywords.empty()) {
         cout << "No keywords entered. Please try again.\n";
         return;
     }
-    
-    unordered_set<uint32_t> common_file_indices;
-    unordered_set<uint32_t> common_content_indices;
-    
+
+    std::unordered_map<uint32_t, int> file_scores; // Store cumulative scores
+    std::unordered_map<uint32_t, std::vector<std::pair<int, std::string>>> content_matches; // Store matched content
+
     for (const auto &key : keywords) {
-        unordered_set<uint32_t> file_indices;
-        unordered_set<uint32_t> content_indices;
-        
-        search_with_wildcards(key, file_indices, 'F');
-        search_with_wildcards(key, content_indices, 'C');
-        
-        if (common_file_indices.empty()) {
-            common_file_indices = file_indices;
-        } else {
-            unordered_set<uint32_t> temp;
-            for (const auto &index : common_file_indices) {
-                if (file_indices.find(index) != file_indices.end()) {
-                    temp.insert(index);
-                }
-            }
-            common_file_indices = temp;
+        std::unordered_set<uint32_t> file_indices;
+        std::unordered_set<uint32_t> content_indices;
+
+        search_with_wildcards(key, file_indices, 'F'); // Search filenames
+        search_with_wildcards(key, content_indices, 'C'); // Search content
+
+        // Increase score for filename matches
+        for (const auto &index : file_indices) {
+            file_scores[index] += 10;
         }
-        
-        if (common_content_indices.empty()) {
-            common_content_indices = content_indices;
-        } else {
-            unordered_set<uint32_t> temp;
-            for (const auto &index : common_content_indices) {
-                if (content_indices.find(index) != content_indices.end()) {
-                    temp.insert(index);
-                }
-            }
-            common_content_indices = temp;
-        }
-    }
-    
-    if (common_file_indices.empty() && common_content_indices.empty()) {
-        cout << "No files contain all specified keywords in either filenames or content.\n";
-        return;
-    }
-    
-    cout << "Search results for keywords:\n";
-    
-    if (!common_file_indices.empty()) {
-        cout << "  File Name Search results:\n";
-        for (const auto &index : common_file_indices) {
-            if (index >= master_files.size()) {
-                cerr << "  Error: Index " << index << " is out of bounds!\n";
-                continue;
-            }
-            cout << "  " << index << ". File: " << master_files[index].print_file_name 
-                 << ", Timestamp: " << master_files[index].print_timestamp
-                 << (master_files[index].favorite ? " \u2B50" : "") << "\n";
-        }
-    }
-    
-    if (!common_content_indices.empty()) {
-        cout << "  File Content Search results:\n";
-        for (const auto &index : common_content_indices) {
-            if (index >= master_files.size()) {
-                cerr << "  Error: Index " << index << " is out of bounds!\n";
-                continue;
-            }
-            
-            vector<pair<int, string>> scored_keywords;
+
+        // Process content matches and increase score
+        for (const auto &index : content_indices) {
+            file_scores[index] += 15;
+
+            // Store matched content
             for (const auto &pair : k_search) {
                 if (pair.first[0] != 'C') continue;
-                // Ensure this content is actually linked to the current file index
-                if (find(pair.second.begin(), pair.second.end(), index) == pair.second.end()) {
-                    continue;  // Skip if the index is not in the vector
-                }
-                std::smatch match;
-                for (const auto &key : keywords) {
+
+                if (std::find(pair.second.begin(), pair.second.end(), index) != pair.second.end()) {
+                    std::smatch match;
                     if (std::regex_search(pair.first, match, std::regex(key, std::regex::icase))) {
-                        int score = 100 - static_cast<int>(match.str().length()) + (50 - static_cast<int>(match.position()));
-                        scored_keywords.emplace_back(score, pair.first.substr(2)); // Remove "C:" prefix
+                        content_matches[index].emplace_back(15, pair.first.substr(2));
                     }
                 }
             }
-            
-            cout << "  List number #" << index << ". File: " << master_files[index].print_file_name 
-                 << ", Timestamp: " << master_files[index].print_timestamp
-                 << (master_files[index].favorite ? " \u2B50" : "") << "\n";
-            cout << "     Matching Keywords: ";
-            for (const auto &[score, keyword] : scored_keywords) {
-                cout << keyword << " ";
+        }
+    }
+
+    // Sort results by score, with tie-breaking logic
+    std::vector<std::pair<uint32_t, int>> sorted_results(file_scores.begin(), file_scores.end());
+    std::sort(sorted_results.begin(), sorted_results.end(), 
+              [&](const std::pair<uint32_t, int> &a, const std::pair<uint32_t, int> &b) { 
+                  if (a.second != b.second) return a.second > b.second;
+
+                  const File &fileA = master_files[a.first];
+                  const File &fileB = master_files[b.first];
+
+                  if (fileA.favorite != fileB.favorite) return fileA.favorite > fileB.favorite;
+                  if (fileA.comp_timestamp != fileB.comp_timestamp) return fileA.comp_timestamp > fileB.comp_timestamp;
+                  return fileA.print_file_name < fileB.print_file_name;
+              });
+
+    // Print results
+    if (sorted_results.empty()) {
+        cout << "No files match your search criteria.\n";
+    } else {
+        cout << "Search results for keywords, ranked best results to worst:\n";
+
+        for (const auto &[index, score] : sorted_results) {
+            if (index >= master_files.size()) {
+                cerr << "  Error: Index " << index << " is out of bounds!\n";
+                continue;
+            }
+
+            cout << "  Filename number #" << index << ". File: " << master_files[index].print_file_name 
+                << ", Timestamp: " << master_files[index].print_timestamp
+                << (master_files[index].favorite ? " \u2B50" : "") << "\n";
+
+            if (content_matches.find(index) != content_matches.end()) {
+                cout << "     Matching Keywords:\n";
+                for (const auto &[_, keyword] : content_matches[index]) {
+                    cout << "      -" << keyword << "\n";
+                }
             }
             cout << "\n";
         }
@@ -391,47 +373,26 @@ void MasterFiles::do_key_search() {
 void MasterFiles::search_with_wildcards(const std::string &pattern, std::unordered_set<uint32_t> &matching_indices, const char prefix) {
     std::string regex_pattern = ".*" + std::regex_replace(pattern, std::regex(R"(\*)"), ".*") + ".*";
     std::regex re(regex_pattern, std::regex::icase);
-    // cout << "Regex pattern: " << regex_pattern << "\n";
-
-    // Define a scoring function for better match ranking
-    auto score_match = [](const std::string &key, const std::smatch &match) {
-        int exact_match = (match.str() == key) ? 1000 : 0; // Perfect match gets the highest score
-        int match_length = static_cast<int>(match.str().length());
-        int position = static_cast<int>(match.position());
-        return exact_match + (100 - match_length) + (50 - position); // Prioritize shorter and earlier matches
-    };
-
-    // Priority queue for ranking matches
-    using ScoredMatch = std::pair<int, uint32_t>;  // (score, index)
-    std::priority_queue<ScoredMatch> pq;
 
     for (const auto &pair : k_search) {
         if (prefix != pair.first[0]) { continue; }
-        
+
         std::string key_to_match = pair.first;
         if (prefix == 'F') {
             key_to_match += ".txt";
         }
-        // std::cout << "Checking against: " << key_to_match << "\n";
 
-        std::smatch match;
-        if (std::regex_search(key_to_match, match, re)) {
-            int score = score_match(key_to_match, match);
-            std::cout << "Matched: " << key_to_match << " (Score: " << score << "), inserting indices: ";
+        if (std::regex_search(key_to_match, re)) {
+          // std::cout << "Matched: " << key_to_match << " ,inserting indices: ";
             for (uint32_t idx : pair.second) {
-                std::cout << idx << " ";
-                pq.emplace(score, idx);
+              //std::cout << idx << " ";
+              matching_indices.insert(idx);
             }
-            std::cout << "\n";
+            // cout << "\n";
         }
     }
-
-    // Insert results into the matching_indices set in priority order
-    while (!pq.empty()) {
-        matching_indices.insert(pq.top().second);
-        pq.pop();
-    }
 }
+
 
 void MasterFiles::search_by_date() {
     int year = -1, month = 0, day = 0;
@@ -440,7 +401,7 @@ void MasterFiles::search_by_date() {
 
     while (true) {
         std::cout << "Enter year (YYYY): ";
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        // cin.ignore(numeric_limits<streamsize>::max(), '\n');
         std::getline(std::cin, input);
 
         if (input.empty()) {

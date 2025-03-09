@@ -119,8 +119,8 @@ public:
             k_search[fileKey].push_back(i);
 
             for (const auto& phrase : master_files[i].master_list) {
-                k_search[phrase].push_back(i);  // Re-add content keywords
-                reverse_map[i].insert(phrase);  // Restore content keys
+                k_search["C:" + phrase].push_back(i);  // Re-add content keywords
+                reverse_map[i].insert("C:" + phrase);  // Restore content keys
             }
         }
     }
