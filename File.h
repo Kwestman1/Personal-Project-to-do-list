@@ -17,6 +17,7 @@ using Clock = std::chrono::system_clock;
 using TimePoint = std::chrono::time_point<Clock>;
 
 // --------------------- FILE CLASS --------------------- //
+// hey //
 
 struct File {
     uint32_t comp_timestamp{ 0 };
